@@ -109,7 +109,6 @@ fn run_xyf(graphics: bool) {
     };
 
     let start = Instant::now();
-
     if let Some(win) = &mut window {
         while win.is_open() || viewer.as_ref().unwrap().is_open() {
             som.epoch(&data, None);
