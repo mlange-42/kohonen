@@ -2,8 +2,6 @@ use crate::data::DataFrame;
 
 use crate::calc::metric::{EuclideanMetric, Metric, SqEuclideanMetric, TanimotoMetric};
 use crate::map::som::Layer;
-use crossbeam::thread;
-use std::sync::mpsc;
 
 #[allow(dead_code)]
 const EUCLIDEAN: EuclideanMetric = EuclideanMetric();

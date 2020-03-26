@@ -43,25 +43,6 @@ fn run_layer_view() {
 }
 
 #[allow(dead_code)]
-fn parallel_nn() {
-    let mut rng = rand::thread_rng();
-    let from = [0.0, 0.0, 0.0];
-    let mut to = DataFrame::<f64>::empty(3);
-
-    for _i in 0..1000 {
-        to.push_row(&[
-            rng.gen_range(0.0, 1.0),
-            rng.gen_range(0.0, 1.0),
-            rng.gen_range(0.0, 1.0),
-        ]);
-    }
-
-    let (idx, dist) = nn::par_nearest_neighbor(&from, &to, 8);
-
-    println!("{}, {}", idx, dist);
-}
-
-#[allow(dead_code)]
 fn run_xyf(graphics: bool) {
     let dim = 4;
     let params = SomParams::xyf(
