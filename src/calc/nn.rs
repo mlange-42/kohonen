@@ -91,6 +91,7 @@ pub fn nearest_neighbors(
     result
 }
 
+/*
 pub fn par_nearest_neighbor(from: &[f64], to: &DataFrame<f64>, num_threads: usize) -> (usize, f64) {
     assert_eq!(from.len(), to.ncols());
     thread::scope(|s| {
@@ -152,6 +153,7 @@ pub fn nearest_neighbor_slice(from: &[f64], to: &[f64], row_offset: usize) -> (u
     }
     (min_idx, min_dist.sqrt())
 }
+*/
 
 #[cfg(test)]
 mod test {
