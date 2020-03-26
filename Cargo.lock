@@ -277,6 +277,7 @@ dependencies = [
 [[package]]
 name = "easy_graph"
 version = "0.1.0"
+source = "git+https://m-lange@bitbucket.org/m-lange/easy_graph.git#bde713f77db48a6c7b76511ce0a53dd8dfc61ba0"
 dependencies = [
  "image",
  "minifb",

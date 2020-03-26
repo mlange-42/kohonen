@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 num-traits = "0.2"
 rand = "0.5.5"
-easy_graph = { path = "../easy_graph", version = "0.1.0" }
+easy_graph = { git = "https://m-lange@bitbucket.org/m-lange/easy_graph.git" }
 
 [dev-dependencies]
 statistical = "1.0.0"
