@@ -13,16 +13,16 @@ pub enum Norm {
     None,
 }
 
-/// De-normalization parameters. Obtained from [normalize](fn.normalize.html).
+/// De-normalization parameters. Obtained from [`normalize`](fn.normalize.html).
 #[derive(Debug)]
 pub struct DeNorm {
     scale: f64,
     offset: f64,
 }
 
-/// Normalize a data frame, with a [Norm](struct.Norm.html) and scale per column.
+/// Normalize a data frame, with a [`Norm`](struct.Norm.html) and scale per column.
 /// # Returns
-/// A tuple of: a normalized data frame, a vector containing one [DeNorm](struct.DeNorm.html) per column.
+/// A tuple of: (normalized data frame, vector of [`DeNorm`](struct.DeNorm.html), one per column).
 pub fn normalize(
     data: &DataFrame<f64>,
     norm: &[Norm],
@@ -106,7 +106,7 @@ pub fn normalize(
     (df, denorm)
 }
 
-/// De-normalize a data frame, with a `DeNorm` per column, as obtained from [normalize](fn.normalize.html).
+/// De-normalize a data frame, with a [`DeNorm`](struct.DeNorm.html) per column, as obtained from [`normalize`](fn.normalize.html).
 /// # Returns
 /// A de-normalized data frame
 pub fn denormalize(data: &DataFrame<f64>, denorm: &[DeNorm]) -> DataFrame<f64> {

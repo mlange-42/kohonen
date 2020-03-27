@@ -1,4 +1,4 @@
-//! Super-SOM for flexible use as unsupervised or supervised SOM.
+//! Super-SOM for flexible use as unsupervised or supervised SOM. Core types.
 
 use crate::calc::metric::{Metric, SqEuclideanMetric};
 use crate::calc::neighborhood::Neighborhood;
@@ -7,6 +7,7 @@ use crate::data::DataFrame;
 use rand::prelude::*;
 use std::cmp;
 
+/// SOM training parameters
 pub struct SomParams<N>
 where
     N: Neighborhood,
@@ -24,6 +25,7 @@ impl<N> SomParams<N>
 where
     N: Neighborhood,
 {
+    /// Creates parameters for a simple SOM with a simple layer.
     pub fn simple(
         epochs: u32,
         neighborhood: N,
@@ -41,6 +43,7 @@ where
         }
     }
 
+    /// Creates parameters for a multi-layers SOM (Super-SOM) using the X-Y-Fused algorithm (XYF).
     pub fn xyf(
         epochs: u32,
         neighborhood: N,
@@ -59,17 +62,20 @@ where
         }
     }
 
+    /// Returns a reference to the layer definitions
     pub fn layers(&self) -> &[Layer] {
         &self.layers
     }
 }
 
+/// Layer definition for multi-layered SOMs.
 pub struct Layer {
     ncols: usize,
     weight: f64,
     categorical: bool,
 }
 impl Layer {
+    /// Creates a new layer.
     pub fn new(ncols: usize, weight: f64, categorical: bool) -> Self {
         Layer {
             ncols,
@@ -77,33 +83,43 @@ impl Layer {
             categorical,
         }
     }
+    /// Creates a new continuous layer.
     pub fn cont(ncols: usize, weight: f64) -> Self {
         Self::new(ncols, weight, false)
     }
+    /// Creates a new categorical layer.
     pub fn cat(ncols: usize, weight: f64) -> Self {
         Self::new(ncols, weight, true)
     }
+    /// The number of data columns of the layer.
     pub fn ncols(&self) -> usize {
         self.ncols
     }
+    /// The weight of the layer.
     pub fn weight(&self) -> f64 {
         self.weight
     }
+    /// If the layer is categorical.
     pub fn categorical(&self) -> bool {
         self.categorical
     }
 }
 
+/// Decay functions for learing parameters.
 pub enum DecayFunction {
+    /// Linear decay
     Linear,
+    /// Exponential decay
     Exponential,
 }
+/// Decay parameters for learing parameters.
 pub struct DecayParam {
     start: f64,
     end: f64,
     function: DecayFunction,
 }
 impl DecayParam {
+    /// Creates a linearly decaying learning parameter from start and end value.
     pub fn lin(start: f64, end: f64) -> Self {
         DecayParam {
             start,
@@ -111,6 +127,7 @@ impl DecayParam {
             function: DecayFunction::Linear,
         }
     }
+    /// Creates a exponentially decaying learning parameter from start and end value.
     pub fn exp(start: f64, end: f64) -> Self {
         DecayParam {
             start,
@@ -118,6 +135,7 @@ impl DecayParam {
             function: DecayFunction::Exponential,
         }
     }
+    /// Get the parameter's value for the given training episode.
     pub fn get(&self, epoch: u32, max_epochs: u32) -> f64 {
         match self.function {
             DecayFunction::Linear => {
@@ -132,6 +150,7 @@ impl DecayParam {
     }
 }
 
+/// Super-SOM core type.
 #[allow(dead_code)]
 pub struct Som<N>
 where
@@ -151,6 +170,7 @@ impl<N> Som<N>
 where
     N: Neighborhood,
 {
+    /// Creates a new SOM or Super-SOM
     pub fn new(dims: usize, nrows: usize, ncols: usize, params: SomParams<N>) -> Self {
         let mut som = Som {
             dims,
@@ -165,10 +185,12 @@ where
         som
     }
 
+    /// Returns a reference to the SOM's parameters.
     pub fn params(&self) -> &SomParams<N> {
         &self.params
     }
 
+    /// Initialize weights. Called by the constructor automatically (may change!).
     pub fn init_weights(&mut self) {
         let mut rng = rand::thread_rng();
         let cols = self.weights.ncols();
@@ -179,6 +201,7 @@ where
         }
     }
 
+    /// Pre-calculates the unit-to-unit distance matrix.
     fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame<f32> {
         let metric = SqEuclideanMetric();
         let mut df = DataFrame::filled(nrows * ncols, nrows * ncols, 0.0);
@@ -200,30 +223,36 @@ where
         }
         df
     }
-
+    /// Returns (row, col) for a given raw data index.
     pub fn to_row_col(&self, index: usize) -> (usize, usize) {
         (index / self.ncols, index % self.ncols)
     }
+    /// Returns the raw data index for (row, col).
     pub fn to_index(&self, row: i32, col: i32) -> usize {
         (row * self.ncols as i32 + col) as usize
     }
-
+    /// Returns a reference to the units weights data frame.
     pub fn weights(&self) -> &DataFrame<f64> {
         &self.weights
     }
+    /// Returns a reference to the weights of the unit at (row, col).
     pub fn weights_at(&self, row: usize, col: usize) -> &[f64] {
         self.weights.get_row(self.to_index(row as i32, col as i32))
     }
+    /// The number of columns (width) of the SOM.
     pub fn ncols(&self) -> usize {
         self.ncols
     }
+    /// The number of rows (height) of the SOM.
     pub fn nrows(&self) -> usize {
         self.nrows
     }
+    /// The size og the SOM as (rows, cols).
     pub fn size(&self) -> (usize, usize) {
         (self.nrows, self.ncols)
     }
 
+    /// Trains the SOM for one epoch. Updates learning parameters
     pub fn epoch(&mut self, samples: &DataFrame<f64>, count: Option<usize>) -> Option<()> {
         if self.epoch >= self.params.epochs {
             return None;
@@ -247,6 +276,7 @@ where
         Some(())
     }
 
+    /// Decays unit weights.
     fn decay_weights(&mut self) {
         let means = self.weights.means();
         let cols = self.weights.ncols();
@@ -260,6 +290,7 @@ where
         }
     }
 
+    /// Trains the SOM for a single sample.
     fn train(&mut self, sample: &[f64]) {
         let params = &self.params;
         let (nearest, _) = if params.layers.len() == 0 {

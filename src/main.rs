@@ -7,7 +7,7 @@ use kohonen::calc::neighborhood::GaussNeighborhood;
 use kohonen::calc::nn;
 use kohonen::data::DataFrame;
 use kohonen::map::som::{DecayParam, Layer, Som, SomParams};
-use kohonen::ui::layer_view::LayerView;
+use kohonen::ui::LayerView;
 use rand::prelude::*;
 use std::time::{Duration, Instant};
 

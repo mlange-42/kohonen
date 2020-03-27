@@ -1,3 +1,4 @@
 //! Visualization.
 
-pub mod layer_view;
+mod layer_view;
+pub use layer_view::LayerView;

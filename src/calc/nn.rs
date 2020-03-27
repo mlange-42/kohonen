@@ -13,6 +13,7 @@ const EUCLIDEAN_SQ: SqEuclideanMetric = SqEuclideanMetric();
 const TANIMOTO: TanimotoMetric = TanimotoMetric();
 
 /// Nearest-neighbor by Euclidean distance.
+/// Dimensions with NA values are ignored.
 /// # Returns
 /// (index, distance)
 pub fn nearest_neighbor(from: &[f64], to: &DataFrame<f64>) -> (usize, f64) {
@@ -31,6 +32,7 @@ pub fn nearest_neighbor(from: &[f64], to: &DataFrame<f64>) -> (usize, f64) {
 }
 
 /// Nearest-neighbor by Tanimoto distance.
+/// Dimensions with NA values are ignored.
 /// # Returns
 /// (index, distance)
 pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame<f64>) -> (usize, f64) {
@@ -49,6 +51,7 @@ pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame<f64>) -> (usize, f
 }
 
 /// Nearest-neighbor for XYF-maps. Layers determine distance metrics and weighting.
+/// Dimensions with NA values are ignored.
 /// # Returns
 /// (index, weighted-distance)
 pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame<f64>, layers: &[Layer]) -> (usize, f64) {

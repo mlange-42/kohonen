@@ -8,6 +8,7 @@ use easy_graph::ui::drawing::IntoDrawingArea;
 use easy_graph::ui::element::Rectangle;
 use easy_graph::ui::window::BufferWindow;
 
+/// Viewer for SOMs as heatmaps.
 pub struct LayerView {
     window: BufferWindow,
     layers: Vec<usize>,
@@ -15,6 +16,7 @@ pub struct LayerView {
 }
 
 impl LayerView {
+    /// Creates a new viewer for a selection of layers, or of all layers it `layers` is empty.
     pub fn new(window: BufferWindow, layers: &[usize], layout_columns: Option<usize>) -> Self {
         LayerView {
             window,
@@ -22,11 +24,11 @@ impl LayerView {
             layout_columns,
         }
     }
-
+    /// If the viewer's window is still open.
     pub fn is_open(&self) -> bool {
         self.window.is_open()
     }
-
+    /// Draws the given SOM. Should be called only for the same SOM repeatedly, not for different SOMs!
     pub fn draw<N>(&mut self, som: &Som<N>)
     where
         N: Neighborhood,
@@ -100,7 +102,7 @@ impl LayerView {
             }
         });
     }
-
+    /// Calculates the required columns as a vector of (index, column index).
     fn get_columns<N>(&self, som: &Som<N>) -> Vec<(usize, usize)>
     where
         N: Neighborhood,
@@ -124,7 +126,7 @@ impl LayerView {
         };
         columns
     }
-
+    /// Calculates the optimum number of layout columns.
     fn calc_layout_columns(
         width: usize,
         height: usize,
