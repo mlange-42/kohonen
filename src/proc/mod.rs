@@ -311,6 +311,8 @@ mod test {
     use crate::calc::norm::Norm;
     use crate::map::som::DecayParam;
     use crate::proc::{InputLayer, ProcessorBuilder};
+    use crate::ui::LayerView;
+    use easy_graph::ui::window::WindowBuilder;
 
     #[test]
     fn create_proc() {
@@ -329,7 +331,7 @@ mod test {
             .build_from_file("example_data/iris.csv")
             .unwrap();
 
-        let som = proc.create_som(
+        let mut som = proc.create_som(
             16,
             20,
             1000,
@@ -355,5 +357,17 @@ mod test {
             ]
         );
         assert_eq!(som.weights().ncols(), proc.data().ncols());
+        /*
+        let win = WindowBuilder::new()
+            .with_dimensions(800, 600)
+            .with_fps_skip(5.0)
+            .build();
+
+        let mut view = LayerView::new(win, &[], None);
+
+        while view.is_open() {
+            som.epoch(proc.data(), None);
+            view.draw(&som);
+        }*/
     }
 }
