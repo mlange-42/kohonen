@@ -1,18 +1,28 @@
+//! Normalization and de-normalization of data.
+
 use crate::data::DataFrame;
 
+/// Normalization types.
 #[derive(Debug)]
 pub enum Norm {
+    /// Normalize to [0, 1].
     Unity,
+    /// Normalize to a mean of 0.5 and standard deviation of 0.5.
     Gauss,
+    /// No normalization
     None,
 }
 
+/// De-normalization parameters. Obtained from [normalize](fn.normalize.html).
 #[derive(Debug)]
 pub struct DeNorm {
     scale: f64,
     offset: f64,
 }
 
+/// Normalize a data frame, with a [Norm](struct.Norm.html) and scale per column.
+/// # Returns
+/// A tuple of: a normalized data frame, a vector containing one [DeNorm](struct.DeNorm.html) per column.
 pub fn normalize(
     data: &DataFrame<f64>,
     norm: &[Norm],
@@ -96,6 +106,9 @@ pub fn normalize(
     (df, denorm)
 }
 
+/// De-normalize a data frame, with a `DeNorm` per column, as obtained from [normalize](fn.normalize.html).
+/// # Returns
+/// A de-normalized data frame
 pub fn denormalize(data: &DataFrame<f64>, denorm: &[DeNorm]) -> DataFrame<f64> {
     let mut df = DataFrame::<f64>::empty(data.ncols());
     for row in data.iter_rows() {
@@ -111,7 +124,7 @@ pub fn denormalize(data: &DataFrame<f64>, denorm: &[DeNorm]) -> DataFrame<f64> {
 
 #[cfg(test)]
 mod tests {
-    use crate::calc::norm::{denormalize, normalize, DeNormalizer, Norm, Normalizer};
+    use crate::calc::norm::{denormalize, normalize, Norm};
     use crate::data::DataFrame;
     use rand::prelude::*;
     use statistical as stats;

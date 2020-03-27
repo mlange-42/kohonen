@@ -1,7 +1,12 @@
+//! Distance metrics.
+
+/// Trait for distance metrics.
 pub trait Metric: Sync {
+    /// Calculates the distance / dissimilarity between two vectors.
     fn distance(&self, from: &[f64], to: &[f64]) -> f64;
 }
 
+/// Squared-Euclidean distance.
 pub struct SqEuclideanMetric();
 impl Metric for SqEuclideanMetric {
     fn distance(&self, from: &[f64], to: &[f64]) -> f64 {
@@ -16,6 +21,7 @@ impl Metric for SqEuclideanMetric {
     }
 }
 
+/// Euclidean distance.
 pub struct EuclideanMetric();
 impl Metric for EuclideanMetric {
     fn distance(&self, from: &[f64], to: &[f64]) -> f64 {
@@ -33,6 +39,7 @@ impl Metric for EuclideanMetric {
     }
 }
 
+/// Tanimoto distance.
 pub struct TanimotoMetric();
 impl Metric for TanimotoMetric {
     fn distance(&self, from: &[f64], to: &[f64]) -> f64 {

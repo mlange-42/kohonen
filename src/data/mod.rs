@@ -1,3 +1,5 @@
+//! Data structures like tables.
+
 use num_traits::Float;
 use std::slice::{Chunks, ChunksMut};
 

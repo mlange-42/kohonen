@@ -1,3 +1,5 @@
+//! Viewer for SOMs as heatmaps.
+
 use crate::calc::neighborhood::Neighborhood;
 use crate::map::som::Som;
 use easy_graph::color::style::{ShapeStyle, BLACK, GREEN, RED, WHITE, YELLOW};

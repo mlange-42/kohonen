@@ -1,3 +1,5 @@
+//! Super-SOM for flexible use as unsupervised or supervised SOM.
+
 use crate::calc::metric::{Metric, SqEuclideanMetric};
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
