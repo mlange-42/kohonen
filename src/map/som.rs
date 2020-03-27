@@ -69,6 +69,7 @@ where
 }
 
 /// Layer definition for multi-layered SOMs.
+#[derive(Clone)]
 pub struct Layer {
     ncols: usize,
     weight: f64,

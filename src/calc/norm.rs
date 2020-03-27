@@ -3,7 +3,7 @@
 use crate::data::DataFrame;
 
 /// Normalization types.
-#[derive(Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Norm {
     /// Normalize to [0, 1].
     Unity,
