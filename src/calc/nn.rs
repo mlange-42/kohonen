@@ -122,13 +122,13 @@ pub fn par_nearest_neighbor(from: &[f64], to: &DataFrame<f64>, num_threads: usiz
         let mut threads = Vec::with_capacity(num_threads);
 
         for i in 0..num_threads {
-            let mut todo = rows_per_thread;
+            let mut rows_todo = rows_per_thread;
             if i < remainder {
-                todo += 1;
+                rows_todo += 1;
             }
             let tx1 = mpsc::Sender::clone(&tx);
             let start = done * col_count;
-            let end = (done + todo) * col_count;
+            let end = (done + rows_todo) * col_count;
             let slice = &data[start..end];
 
             let child = s.spawn(move |_| {
@@ -138,7 +138,7 @@ pub fn par_nearest_neighbor(from: &[f64], to: &DataFrame<f64>, num_threads: usiz
 
             threads.push(child);
 
-            done += todo;
+            done += rows_todo;
         }
 
         let mut min_dist = std::f64::MAX;
@@ -182,7 +182,7 @@ mod test {
     fn xyf_nn() {
         let mut rng = rand::thread_rng();
         let from = [0.0, 0.0, 0.0, 0.0, 0.0];
-        let mut to = DataFrame::<f64>::empty(5);
+        let mut to = DataFrame::<f64>::empty(&["A", "B", "C", "D", "E"]);
 
         for _i in 0..10 {
             to.push_row(&[
@@ -202,7 +202,7 @@ mod test {
     fn nn_simple() {
         let mut rng = rand::thread_rng();
         let from = [0.0, 0.0, 0.0];
-        let mut to = DataFrame::<f64>::empty(3);
+        let mut to = DataFrame::<f64>::empty(&["A", "B", "C"]);
 
         for _i in 0..100 {
             to.push_row(&[
@@ -220,8 +220,8 @@ mod test {
     #[test]
     fn nns_simple() {
         let mut rng = rand::thread_rng();
-        let mut from = DataFrame::<f64>::empty(3);
-        let mut to = DataFrame::<f64>::empty(3);
+        let mut from = DataFrame::<f64>::empty(&["A", "B", "C"]);
+        let mut to = DataFrame::<f64>::empty(&["A", "B", "C"]);
 
         for _i in 0..100 {
             from.push_row(&[

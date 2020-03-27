@@ -11,6 +11,7 @@ where
 {
     ncols: usize,
     nrows: usize,
+    names: Vec<String>,
     data: Vec<T>,
 }
 
@@ -19,27 +20,31 @@ impl<T> DataFrame<T>
 where
     T: Float,
 {
-    /// Creates an empty data frame, with the given number of columns and zero rows.
-    pub fn empty(ncols: usize) -> Self {
+    /// Creates an empty data frame, with the given columns and zero rows.
+    pub fn empty(columns: &[&str]) -> Self {
         DataFrame {
-            ncols,
+            names: columns.iter().map(|s| s.to_string()).collect(),
+            ncols: columns.len(),
             nrows: 0,
             data: vec![],
         }
     }
 
     /// Creates a blank data frame, with the given number of columns and rows, filled with a value.
-    pub fn filled(nrows: usize, ncols: usize, fill: T) -> Self {
+    pub fn filled(nrows: usize, columns: &[&str], fill: T) -> Self {
         DataFrame {
-            ncols,
+            names: columns.iter().map(|s| s.to_string()).collect(),
+            ncols: columns.len(),
             nrows,
-            data: vec![fill; nrows * ncols],
+            data: vec![fill; nrows * columns.len()],
         }
     }
 
     /// Creates a data frame from a vector of rows.
-    pub fn from_rows(rows: &[Vec<T>]) -> Self {
+    pub fn from_rows(columns: &[&str], rows: &[Vec<T>]) -> Self {
+        assert_eq!(columns.len(), rows[0].len());
         DataFrame {
+            names: columns.iter().map(|s| s.to_string()).collect(),
             ncols: rows[0].len(),
             nrows: rows.len(),
             data: rows.iter().flatten().copied().collect(),
@@ -63,6 +68,11 @@ where
     /// `|___ row 1 ___|___ row 2 ___|___ ...`
     pub fn data(&self) -> &[T] {
         &self.data
+    }
+
+    /// Returns a reference to the data frame's column names.
+    pub fn names(&self) -> &[String] {
+        &self.names
     }
 
     /// Appends a row to the end of the data frame, from a slice.
@@ -186,23 +196,24 @@ mod test {
 
     #[test]
     fn create_df() {
-        let cols = 4;
+        let cols = ["A", "B", "C", "D"];
         let rows = 100;
-        let df = DataFrame::<f32>::filled(rows, cols, 0.0);
+        let df = DataFrame::<f32>::filled(rows, &cols, 0.0);
 
-        assert_eq!(df.ncols, cols);
+        assert_eq!(df.ncols, cols.len());
         assert_eq!(df.nrows, rows);
-        assert_eq!(df.data.len(), rows * cols);
+        assert_eq!(df.data.len(), rows * cols.len());
     }
 
     #[test]
     fn create_df_from_rows() {
+        let cols = ["A", "B", "C", "D"];
         let data = vec![
             vec![1.0, 2.0, 3.0, 4.0],
             vec![2.0, 3.0, 4.0, 5.],
             vec![3.0, 4.0, 5.0, 6.0],
         ];
-        let df = DataFrame::<f32>::from_rows(&data);
+        let df = DataFrame::<f32>::from_rows(&cols, &data);
 
         assert_eq!(df.ncols, 4);
         assert_eq!(df.nrows, 3);
@@ -211,16 +222,16 @@ mod test {
 
     #[test]
     fn add_rows() {
-        let cols = 4;
-        let mut df = DataFrame::<f32>::empty(cols);
+        let cols = ["A", "B", "C", "D"];
+        let mut df = DataFrame::<f32>::empty(&cols);
 
         df.push_row(&[1.0, 2.0, 3.0, 4.0]);
         df.push_row(&[2.0, 3.0, 4.0, 5.0]);
         df.push_row(&[3.0, 4.0, 5.0, 6.0]);
 
-        assert_eq!(df.ncols, cols);
+        assert_eq!(df.ncols, cols.len());
         assert_eq!(df.nrows, 3);
-        assert_eq!(df.data.len(), 3 * cols);
+        assert_eq!(df.data.len(), 3 * cols.len());
 
         assert_eq!(df.get_row(1), &[2.0, 3.0, 4.0, 5.0]);
         assert_eq!(df.get(1, 2), &4.0);
@@ -229,9 +240,9 @@ mod test {
 
     #[test]
     fn iter_rows() {
-        let cols = 4;
+        let cols = ["A", "B", "C", "D"];
         let rows = 10;
-        let mut df = DataFrame::<f32>::empty(cols);
+        let mut df = DataFrame::<f32>::empty(&cols);
 
         for _i in 0..rows {
             df.push_row(&[1.0, 2.0, 3.0, 4.0]);
@@ -247,8 +258,8 @@ mod test {
 
     #[test]
     fn ranges() {
-        let cols = 4;
-        let mut df = DataFrame::<f32>::empty(cols);
+        let cols = ["A", "B", "C", "D"];
+        let mut df = DataFrame::<f32>::empty(&cols);
 
         df.push_row(&[1.0, 2.0, 3.0, 4.0]);
         df.push_row(&[2.0, 3.0, 4.0, 5.0]);

@@ -3,7 +3,7 @@
 use crate::data::DataFrame;
 
 /// Normalization types.
-#[derive(Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Norm {
     /// Normalize to [0, 1].
     Unity,
@@ -85,7 +85,8 @@ pub fn normalize(
         })
         .collect();
 
-    let mut df = DataFrame::<f64>::empty(data.ncols());
+    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let mut df = DataFrame::<f64>::empty(&cols);
 
     for row in data.iter_rows() {
         df.push_row_iter(
@@ -110,7 +111,8 @@ pub fn normalize(
 /// # Returns
 /// A de-normalized data frame
 pub fn denormalize(data: &DataFrame<f64>, denorm: &[DeNorm]) -> DataFrame<f64> {
-    let mut df = DataFrame::<f64>::empty(data.ncols());
+    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let mut df = DataFrame::<f64>::empty(&cols);
     for row in data.iter_rows() {
         df.push_row_iter(
             denorm
@@ -132,7 +134,7 @@ mod tests {
     #[test]
     fn normalization() {
         let mut rng = rand::thread_rng();
-        let mut data = DataFrame::<f64>::empty(3);
+        let mut data = DataFrame::<f64>::empty(&["A", "B", "C"]);
 
         let norm = rand::distributions::Normal::new(1.0, 2.0);
         for _i in 0..20 {
