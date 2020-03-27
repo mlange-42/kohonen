@@ -15,7 +15,7 @@ fn main() {
 
 #[allow(dead_code)]
 fn run_xyf(graphics: bool) {
-    let dim = 4;
+    let cols = ["A", "B", "C", "D"];
     let params = SomParams::xyf(
         1000,
         GaussNeighborhood(),
@@ -24,10 +24,10 @@ fn run_xyf(graphics: bool) {
         DecayParam::exp(0.25, 0.0001),
         vec![Layer::cont(2, 0.5), Layer::cat(2, 0.5)],
     );
-    let mut som = Som::new(dim, 12, 24, params);
+    let mut som = Som::new(cols.len(), 12, 24, params);
 
     let mut rng = rand::thread_rng();
-    let mut data = DataFrame::<f64>::empty(dim);
+    let mut data = DataFrame::<f64>::empty(&cols);
 
     let norm = rand::distributions::Normal::new(0.0, 0.06);
     for _i in 0..5000 {

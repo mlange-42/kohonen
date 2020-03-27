@@ -176,7 +176,7 @@ where
             dims,
             nrows,
             ncols,
-            weights: DataFrame::filled(nrows * ncols, dims, 0.0),
+            weights: DataFrame::filled(nrows * ncols, &vec![""; dims], 0.0),
             distances_sq: Self::calc_distance_matix(nrows, ncols),
             params,
             epoch: 0,
@@ -204,7 +204,7 @@ where
     /// Pre-calculates the unit-to-unit distance matrix.
     fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame<f32> {
         let metric = SqEuclideanMetric();
-        let mut df = DataFrame::filled(nrows * ncols, nrows * ncols, 0.0);
+        let mut df = DataFrame::filled(nrows * ncols, &vec![""; nrows * ncols], 0.0);
         for r1 in 0..nrows {
             for c1 in 0..ncols {
                 let idx1 = r1 * ncols + c1;
@@ -388,7 +388,7 @@ mod test {
     }
     #[test]
     fn train_epoch() {
-        let dim = 5;
+        let cols = ["A", "B", "C", "D", "E"];
         let params = SomParams::simple(
             10,
             GaussNeighborhood(),
@@ -396,10 +396,10 @@ mod test {
             DecayParam::lin(5.0, 0.5),
             DecayParam::exp(0.2, 0.001),
         );
-        let mut som = Som::new(dim, 16, 16, params);
+        let mut som = Som::new(cols.len(), 16, 16, params);
 
         let mut rng = rand::thread_rng();
-        let mut data = DataFrame::<f64>::empty(dim);
+        let mut data = DataFrame::<f64>::empty(&cols);
 
         for _i in 0..100 {
             data.push_row(&[
