@@ -1,8 +1,14 @@
+//! Neighborhoods (i.e. kernels), for effect on nearby SOM-units.
+
+/// Trait for neighborhoods.
 pub trait Neighborhood {
+    /// Calculates the weight, depending on the squared(!) distance.
     fn weight(&self, distance_sq: f64) -> f64;
+    /// Maximum search distance in the SOM. Not squared!
     fn radius(&self) -> f64;
 }
 
+/// Gaussian (normal) neighborhood.
 pub struct GaussNeighborhood();
 
 impl Neighborhood for GaussNeighborhood {
