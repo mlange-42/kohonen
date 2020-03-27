@@ -1,18 +1,28 @@
+//! Normalization and de-normalization of data.
+
 use crate::data::DataFrame;
 
-#[derive(Debug)]
+/// Normalization types.
+#[derive(PartialEq, Clone, Debug)]
 pub enum Norm {
+    /// Normalize to [0, 1].
     Unity,
+    /// Normalize to a mean of 0.5 and standard deviation of 0.5.
     Gauss,
+    /// No normalization
     None,
 }
 
+/// De-normalization parameters. Obtained from [`normalize`](fn.normalize.html).
 #[derive(Debug)]
 pub struct DeNorm {
     scale: f64,
     offset: f64,
 }
 
+/// Normalize a data frame, with a [`Norm`](struct.Norm.html) and scale per column.
+/// # Returns
+/// A tuple of: (normalized data frame, vector of [`DeNorm`](struct.DeNorm.html), one per column).
 pub fn normalize(
     data: &DataFrame<f64>,
     norm: &[Norm],
@@ -75,7 +85,8 @@ pub fn normalize(
         })
         .collect();
 
-    let mut df = DataFrame::<f64>::empty(data.ncols());
+    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let mut df = DataFrame::<f64>::empty(&cols);
 
     for row in data.iter_rows() {
         df.push_row_iter(
@@ -96,8 +107,12 @@ pub fn normalize(
     (df, denorm)
 }
 
+/// De-normalize a data frame, with a [`DeNorm`](struct.DeNorm.html) per column, as obtained from [`normalize`](fn.normalize.html).
+/// # Returns
+/// A de-normalized data frame
 pub fn denormalize(data: &DataFrame<f64>, denorm: &[DeNorm]) -> DataFrame<f64> {
-    let mut df = DataFrame::<f64>::empty(data.ncols());
+    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let mut df = DataFrame::<f64>::empty(&cols);
     for row in data.iter_rows() {
         df.push_row_iter(
             denorm
@@ -111,7 +126,7 @@ pub fn denormalize(data: &DataFrame<f64>, denorm: &[DeNorm]) -> DataFrame<f64> {
 
 #[cfg(test)]
 mod tests {
-    use crate::calc::norm::{denormalize, normalize, DeNormalizer, Norm, Normalizer};
+    use crate::calc::norm::{denormalize, normalize, Norm};
     use crate::data::DataFrame;
     use rand::prelude::*;
     use statistical as stats;
@@ -119,7 +134,7 @@ mod tests {
     #[test]
     fn normalization() {
         let mut rng = rand::thread_rng();
-        let mut data = DataFrame::<f64>::empty(3);
+        let mut data = DataFrame::<f64>::empty(&["A", "B", "C"]);
 
         let norm = rand::distributions::Normal::new(1.0, 2.0);
         for _i in 0..20 {
