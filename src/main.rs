@@ -11,6 +11,7 @@ fn main() {
 
     let proc = ProcessorBuilder::new(&parsed.layers)
         .with_delimiter(b';')
+        .with_no_data(&parsed.no_data)
         .build_from_file(&parsed.file)
         .unwrap();
 

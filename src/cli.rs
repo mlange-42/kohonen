@@ -45,6 +45,9 @@ pub struct Cli {
     /// Disable GUI
     #[structopt(long = "--no-gui")]
     nogui: bool,
+    /// No-data value. Default 'NA'.
+    #[structopt(long = "--no-data")]
+    no_data: Option<String>,
 }
 
 #[derive(Debug)]
@@ -58,6 +61,7 @@ pub struct CliParsed {
     pub decay: DecayParam,
     pub neigh: Neighborhood,
     pub gui: bool,
+    pub no_data: String,
 }
 
 impl CliParsed {
@@ -75,6 +79,7 @@ impl CliParsed {
                 None => Neighborhood::Gauss,
             },
             gui: !cli.nogui,
+            no_data: cli.no_data.unwrap_or("NA".to_string()),
         }
     }
 
@@ -86,8 +91,12 @@ impl CliParsed {
             ));
         }
         DecayParam::new(
-            values[0].parse().unwrap(),
-            values[1].parse().unwrap(),
+            values[0]
+                .parse()
+                .expect(&format!("Unable to parse value {} in {}", values[0], name)),
+            values[1]
+                .parse()
+                .expect(&format!("Unable to parse value {} in {}", values[1], name)),
             DecayFunction::from_string(&values[2]).unwrap(),
             /*
             match &values[2][..] {
@@ -130,7 +139,7 @@ impl CliParsed {
             .zip(&cli.norm)
             .map(|(((lay, wt), cat), norm)| {
                 InputLayer::new(
-                    &lay.split(' ').map(|s| &*s).collect::<Vec<_>>(),
+                    &lay.trim().split(' ').map(|s| &*s).collect::<Vec<_>>(),
                     *wt,
                     *cat > 0,
                     Norm::from_string(norm).unwrap(),

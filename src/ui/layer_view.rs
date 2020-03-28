@@ -59,6 +59,7 @@ impl LayerView {
         let scale = (if x_scale < y_scale { x_scale } else { y_scale }) as i32;
 
         let ranges = som.weights().ranges();
+
         let color_map = LinearColorMap::new(&[&GREEN, &YELLOW, &RED]);
 
         self.window.draw(|b| {

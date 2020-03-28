@@ -51,10 +51,10 @@ impl LinearTransform {
 /// # Returns
 /// A tuple of: (normalized data frame, vector of [`LinearTransform`](struct.LinearTransform.html) for de-normalization, one per column).
 pub fn normalize(
-    data: &DataFrame<f64>,
+    data: &DataFrame,
     norm: &[Norm],
     scale: &[f64],
-) -> (DataFrame<f64>, Vec<LinearTransform>) {
+) -> (DataFrame, Vec<LinearTransform>) {
     let mut counts = vec![0; data.ncols()];
     let mut params: Vec<_> = norm
         .iter()
@@ -66,8 +66,8 @@ pub fn normalize(
 
     for row in data.iter_rows() {
         for (i, v) in row.iter().enumerate() {
-            let norm = &norm[i];
             if !v.is_nan() {
+                let norm = &norm[i];
                 match norm {
                     Norm::Unit => {
                         if *v < params[i].0 {
@@ -87,6 +87,8 @@ pub fn normalize(
             }
         }
     }
+    //println!("Params: {:?}", params);
+    //println!("Counts: {:?}", counts);
     let denorm: Vec<_> = params
         .iter()
         .zip(counts)
@@ -121,7 +123,7 @@ pub fn normalize(
         .collect();
 
     let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
-    let mut df = DataFrame::<f64>::empty(&cols);
+    let mut df = DataFrame::empty(&cols);
 
     for row in data.iter_rows() {
         df.push_row_iter(
@@ -140,9 +142,9 @@ pub fn normalize(
 /// De-normalize a data frame, with a [`LinearTransform`](struct.DeNorm.html) per column, as obtained from [`normalize`](fn.normalize.html).
 /// # Returns
 /// A de-normalized data frame
-pub fn denormalize(data: &DataFrame<f64>, denorm: &[LinearTransform]) -> DataFrame<f64> {
+pub fn denormalize(data: &DataFrame, denorm: &[LinearTransform]) -> DataFrame {
     let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
-    let mut df = DataFrame::<f64>::empty(&cols);
+    let mut df = DataFrame::empty(&cols);
     for row in data.iter_rows() {
         df.push_row_iter(
             denorm
@@ -165,7 +167,7 @@ mod tests {
     #[test]
     fn normalization() {
         let mut rng = rand::thread_rng();
-        let mut data = DataFrame::<f64>::empty(&["A", "B", "C"]);
+        let mut data = DataFrame::empty(&["A", "B", "C"]);
 
         let norm = rand::distributions::Normal::new(1.0, 2.0);
         for _i in 0..20 {

@@ -24,7 +24,7 @@ fn run_som(graphics: bool) {
     let mut som = Som::new(cols.len(), 20, 16, params);
 
     let mut rng = rand::thread_rng();
-    let mut data = DataFrame::<f64>::empty(&cols);
+    let mut data = DataFrame::empty(&cols);
 
     let norm = rand::distributions::Normal::new(0.0, 0.06);
     for _i in 0..5000 {

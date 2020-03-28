@@ -86,43 +86,61 @@ impl InputLayer {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct CsvOptions {
+    delimiter: u8,
+    no_data: String,
+}
+
 pub struct ProcessorBuilder {
     input_layers: Vec<InputLayer>,
-    delimiter: u8,
+    csv_options: CsvOptions,
 }
 impl ProcessorBuilder {
     pub fn new(layers: &[InputLayer]) -> Self {
         ProcessorBuilder {
             input_layers: layers.to_vec(),
-            delimiter: b',',
+            csv_options: CsvOptions {
+                delimiter: b',',
+                no_data: "NA".to_string(),
+            },
         }
     }
     pub fn with_delimiter(mut self, delimiter: u8) -> Self {
-        self.delimiter = delimiter;
+        self.csv_options.delimiter = delimiter;
+        self
+    }
+    pub fn with_no_data(mut self, no_data: &str) -> Self {
+        self.csv_options.no_data = no_data.to_string();
         self
     }
     pub fn build_from_file(self, path: &str) -> Result<Processor, Box<dyn Error>> {
-        let proc = Processor::new(self.input_layers, path)?;
+        let proc = Processor::new(self.input_layers, path, &self.csv_options)?;
         Ok(proc)
     }
 }
 
 pub struct Processor {
     input_layers: Vec<InputLayer>,
-    data: DataFrame<f64>,
+    data: DataFrame,
     layers: Vec<Layer>,
     norm: Vec<Norm>,
     denorm: Vec<LinearTransform>,
     scale: Vec<f64>,
+    csv_options: CsvOptions,
 }
 
 impl Processor {
-    fn new(input_layers: Vec<InputLayer>, path: &str) -> Result<Self, Box<dyn Error>> {
-        Self::read_file(input_layers, path)
+    fn new(
+        input_layers: Vec<InputLayer>,
+        path: &str,
+        csv_options: &CsvOptions,
+    ) -> Result<Self, Box<dyn Error>> {
+        Self::read_file(input_layers, path, csv_options)
     }
 
     /// The normalized data.
-    pub fn data(&self) -> &DataFrame<f64> {
+    pub fn data(&self) -> &DataFrame {
         &self.data
     }
     pub fn layers(&self) -> &[Layer] {
@@ -144,10 +162,13 @@ impl Processor {
     fn read_file(
         mut input_layers: Vec<InputLayer>,
         path: &str,
+        csv_options: &CsvOptions,
     ) -> Result<Processor, Box<dyn Error>> {
+        let no_data = &csv_options.no_data;
+        println!("|{}|", no_data);
         // Read csv
         let mut reader = ReaderBuilder::new()
-            .delimiter(b';')
+            .delimiter(csv_options.delimiter)
             .from_path(path)
             .unwrap();
         let header: StringRecord = reader.headers().unwrap().clone();
@@ -179,7 +200,7 @@ impl Processor {
             for (idx, lay) in categorical.iter() {
                 let v = rec.get(lay.indices.as_ref().unwrap()[0]).unwrap();
                 let levels = &mut cat_levels[*idx];
-                if !levels.contains(v) {
+                if v != no_data && !levels.contains(v) {
                     levels.insert(v.to_string());
                 }
             }
@@ -220,7 +241,9 @@ impl Processor {
                 colnames.extend(lay.names.iter().cloned());
             }
         }
-        let mut df = DataFrame::<f64>::empty(&colnames.iter().map(|x| &**x).collect::<Vec<_>>());
+
+        // transform to SOM training data format
+        let mut df = DataFrame::empty(&colnames.iter().map(|x| &**x).collect::<Vec<_>>());
         let mut row = vec![0.0; colnames.len()];
 
         reader.seek(start_pos).unwrap();
@@ -234,15 +257,29 @@ impl Processor {
                 let indices = inp.indices.as_ref().unwrap();
                 if inp.is_class {
                     let v = rec.get(indices[0]).unwrap();
-                    let pos = cat_levels[layer_index]
-                        .iter()
-                        .position(|v2| v == v2)
-                        .unwrap();
-                    row[start + pos] = 1.0;
+                    if v == no_data {
+                        for i in start..(start + cat_levels[layer_index].len()) {
+                            row[i] = std::f64::NAN;
+                        }
+                    } else {
+                        let pos = cat_levels[layer_index]
+                            .iter()
+                            .position(|v2| v == v2)
+                            .unwrap();
+                        row[start + pos] = 1.0;
+                    }
                 } else {
                     for (i, idx) in inp.indices.as_ref().unwrap().iter().enumerate() {
-                        let v: f64 = rec.get(*idx).unwrap().parse()?;
-                        row[start + i] = v;
+                        let str = rec.get(*idx).unwrap();
+                        if str == no_data {
+                            row[start + i] = std::f64::NAN;
+                        } else {
+                            let v: f64 = str.parse().expect(&format!(
+                                "Unable to parse value {} in column {}",
+                                str, inp.names[i]
+                            ));
+                            row[start + i] = v;
+                        }
                     }
                 }
                 start += lay.ncols();
@@ -259,8 +296,12 @@ impl Processor {
             }
         }
         let (data_norm, denorm) = normalize(&df, &norm, &scale);
+
         /*
         for row in df.iter_rows() {
+            println!("{:?}", row);
+        }
+        for row in data_norm.iter_rows() {
             println!("{:?}", row);
         }
         println!("{:?}", cat_levels);
@@ -276,6 +317,7 @@ impl Processor {
             norm,
             denorm,
             scale,
+            csv_options: csv_options.clone(),
         })
     }
 

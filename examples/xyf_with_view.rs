@@ -27,7 +27,7 @@ fn run_xyf(graphics: bool) {
     let mut som = Som::new(cols.len(), 12, 24, params);
 
     let mut rng = rand::thread_rng();
-    let mut data = DataFrame::<f64>::empty(&cols);
+    let mut data = DataFrame::empty(&cols);
 
     let norm = rand::distributions::Normal::new(0.0, 0.06);
     for _i in 0..5000 {

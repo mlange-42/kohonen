@@ -8,7 +8,6 @@ edition = "2018"
 
 [dependencies]
 csv = "1.1"
-num-traits = "0.2"
 rand = "0.5.5"
 easy_graph = { git = "https://github.com/mlange-42/easy_graph.git" }
 

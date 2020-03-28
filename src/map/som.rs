@@ -174,8 +174,8 @@ pub struct Som {
     dims: usize,
     nrows: usize,
     ncols: usize,
-    weights: DataFrame<f64>,
-    distances_sq: DataFrame<f32>,
+    weights: DataFrame,
+    distances_sq: DataFrame,
     params: SomParams,
     epoch: u32,
 }
@@ -214,7 +214,7 @@ impl Som {
     }
 
     /// Pre-calculates the unit-to-unit distance matrix.
-    fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame<f32> {
+    fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame {
         let metric = SqEuclideanMetric();
         let mut df = DataFrame::filled(nrows * ncols, &vec![""; nrows * ncols], 0.0);
         for r1 in 0..nrows {
@@ -226,8 +226,7 @@ impl Som {
                         df.set(
                             idx1,
                             idx2,
-                            metric.distance(&[r1 as f64, c1 as f64], &[r2 as f64, c2 as f64])
-                                as f32,
+                            metric.distance(&[r1 as f64, c1 as f64], &[r2 as f64, c2 as f64]),
                         );
                     }
                 }
@@ -244,7 +243,7 @@ impl Som {
         (row * self.ncols as i32 + col) as usize
     }
     /// Returns a reference to the units weights data frame.
-    pub fn weights(&self) -> &DataFrame<f64> {
+    pub fn weights(&self) -> &DataFrame {
         &self.weights
     }
     /// Returns a reference to the weights of the unit at (row, col).
@@ -265,7 +264,7 @@ impl Som {
     }
 
     /// Trains the SOM for one epoch. Updates learning parameters
-    pub fn epoch(&mut self, samples: &DataFrame<f64>, count: Option<usize>) -> Option<()> {
+    pub fn epoch(&mut self, samples: &DataFrame, count: Option<usize>) -> Option<()> {
         if self.epoch >= self.params.epochs {
             return None;
         }
@@ -338,9 +337,12 @@ impl Som {
                 if dist_sq <= search_rad_sq {
                     let weight = neigh.weight(radius_inf_sq * dist_sq);
                     for i in 0..self.dims {
-                        let value = *self.weights.get(index, i);
-                        self.weights
-                            .set(index, i, value + weight * alpha * (sample[i] - value))
+                        let smp = sample[i];
+                        if !smp.is_nan() {
+                            let value = *self.weights.get(index, i);
+                            self.weights
+                                .set(index, i, value + weight * alpha * (smp - value));
+                        }
                     }
                 }
             }
@@ -411,7 +413,7 @@ mod test {
         let mut som = Som::new(cols.len(), 16, 16, params);
 
         let mut rng = rand::thread_rng();
-        let mut data = DataFrame::<f64>::empty(&cols);
+        let mut data = DataFrame::empty(&cols);
 
         for _i in 0..100 {
             data.push_row(&[
