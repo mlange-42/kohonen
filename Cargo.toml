@@ -1,6 +1,6 @@
 [package]
 name = "kohonen"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["m-lange <martin_lange_@gmx.net>"]
 edition = "2018"
 
@@ -8,9 +8,11 @@ edition = "2018"
 
 [dependencies]
 csv = "1.1"
-num-traits = "0.2"
 rand = "0.5.5"
 easy_graph = { git = "https://github.com/mlange-42/easy_graph.git" }
+
+# TODO put CLI in feature
+structopt = "0.3"
 
 [dev-dependencies]
 statistical = "1.0.0"

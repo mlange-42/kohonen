@@ -2,7 +2,7 @@ use easy_graph::color::style::{BLACK, BLUE, WHITE};
 use easy_graph::ui::drawing::IntoDrawingArea;
 use easy_graph::ui::element::{Circle, PathElement};
 use easy_graph::ui::window::WindowBuilder;
-use kohonen::calc::neighborhood::GaussNeighborhood;
+use kohonen::calc::neighborhood::Neighborhood;
 use kohonen::data::DataFrame;
 use kohonen::map::som::{DecayParam, Som, SomParams};
 use rand::prelude::*;
@@ -16,7 +16,7 @@ fn run_som(graphics: bool) {
     let cols = ["A", "B"];
     let params = SomParams::simple(
         1000,
-        GaussNeighborhood(),
+        Neighborhood::Gauss,
         DecayParam::lin(0.1, 0.01),
         DecayParam::lin(10.0, 0.6),
         DecayParam::exp(0.25, 0.0001),
@@ -24,7 +24,7 @@ fn run_som(graphics: bool) {
     let mut som = Som::new(cols.len(), 20, 16, params);
 
     let mut rng = rand::thread_rng();
-    let mut data = DataFrame::<f64>::empty(&cols);
+    let mut data = DataFrame::empty(&cols);
 
     let norm = rand::distributions::Normal::new(0.0, 0.06);
     for _i in 0..5000 {
