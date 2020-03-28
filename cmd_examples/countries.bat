@@ -7,7 +7,7 @@
 --norm gauss none ^
 --weights 1 1 ^
 --alpha 0.2 0.01 lin ^
---radius 10 0.5 lin ^
+--radius 10 0.8 lin ^
 --decay 0.2 0.001 exp ^
 --neigh gauss ^
 --no-data - ^

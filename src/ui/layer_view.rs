@@ -229,7 +229,7 @@ impl LayerView {
                 .unwrap();
                 root.draw_text(&names[col], &test_style, (x_min, y_min - 1))
                     .unwrap();
-                let steps = 50;
+                let steps = 25;
                 let total_height = scale * som.nrows() as i32 - 40;
                 let total_width = scale * som.ncols() as i32;
                 let x = x_min + total_width;

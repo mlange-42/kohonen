@@ -2,6 +2,7 @@ use easy_graph::ui::window::WindowBuilder;
 use kohonen::cli::{Cli, CliParsed};
 use kohonen::proc::ProcessorBuilder;
 use kohonen::ui::LayerView;
+use std::time::Duration;
 use structopt::StructOpt;
 
 fn main() {
@@ -45,9 +46,12 @@ fn main() {
 
     if let Some(views) = &mut viewers {
         while views.iter().fold(false, |a, v| a || v.is_open()) {
-            som.epoch(&proc.data(), None);
+            let res = som.epoch(&proc.data(), None);
             for view in views.iter_mut() {
                 view.draw(&som);
+            }
+            if res.is_none() {
+                std::thread::sleep(Duration::from_millis(40));
             }
         }
     } else {
