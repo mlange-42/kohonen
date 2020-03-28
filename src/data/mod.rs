@@ -67,6 +67,10 @@ impl DataFrame {
     pub fn names(&self) -> &[String] {
         &self.names
     }
+    /// Returns the data frame's column names as a vector of references.
+    pub fn names_ref_vec(&self) -> Vec<&str> {
+        self.names.iter().map(|x| &**x).collect()
+    }
 
     /// Appends a row to the end of the data frame, from a slice.
     pub fn push_row(&mut self, row: &[f64]) {

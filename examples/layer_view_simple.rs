@@ -20,7 +20,7 @@ fn main() {
         .with_fps_skip(5.0)
         .build();
 
-    let mut view = LayerView::new(win, &[0], None);
+    let mut view = LayerView::new(win, &[0], &["A", "B", "C", "D", "E"], None);
 
     while view.is_open() {
         view.draw(&som);

@@ -30,7 +30,7 @@ fn main() {
             .with_dimensions(1000, 750)
             .with_fps_skip(2.0)
             .build();
-        Some(LayerView::new(win, &[], None))
+        Some(LayerView::new(win, &[], &proc.data().names_ref_vec(), None))
     } else {
         None
     };

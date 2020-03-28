@@ -1,7 +1,8 @@
 //! Viewer for SOMs as heatmaps.
 
 use crate::map::som::Som;
-use easy_graph::color::style::{ShapeStyle, BLACK, GREEN, RED, WHITE, YELLOW};
+use easy_graph::color::style::text_anchor::{HPos, Pos, VPos};
+use easy_graph::color::style::{IntoFont, ShapeStyle, TextStyle, BLACK, GREEN, RED, WHITE, YELLOW};
 use easy_graph::color::{ColorMap, LinearColorMap};
 use easy_graph::ui::drawing::IntoDrawingArea;
 use easy_graph::ui::element::Rectangle;
@@ -11,16 +12,25 @@ use easy_graph::ui::window::BufferWindow;
 pub struct LayerView {
     window: BufferWindow,
     layers: Vec<usize>,
+    names: Vec<String>,
     layout_columns: Option<usize>,
+    scale: Option<i32>,
 }
 
 impl LayerView {
     /// Creates a new viewer for a selection of layers, or of all layers it `layers` is empty.
-    pub fn new(window: BufferWindow, layers: &[usize], layout_columns: Option<usize>) -> Self {
+    pub fn new(
+        window: BufferWindow,
+        layers: &[usize],
+        names: &[&str],
+        layout_columns: Option<usize>,
+    ) -> Self {
         LayerView {
             window,
             layers: layers.to_vec(),
+            names: names.iter().map(|n| n.to_string()).collect(),
             layout_columns,
+            scale: None,
         }
     }
     /// If the viewer's window is still open.
@@ -32,6 +42,8 @@ impl LayerView {
         let columns = self.get_columns(som);
 
         let margin = 5_i32;
+        let heading = 16_i32;
+        let legend = 20_i32;
 
         let (som_rows, som_cols) = som.size();
         let (width, height) = self.window.size();
@@ -39,13 +51,17 @@ impl LayerView {
         let height = height - 2 * margin as usize;
 
         if self.layout_columns.is_none() {
-            self.layout_columns = Some(Self::calc_layout_columns(
+            let (cols, scale) = Self::calc_layout_columns(
                 width,
                 height,
                 som_rows,
                 som_cols,
                 columns.len(),
-            ));
+                heading,
+                legend,
+            );
+            self.layout_columns = Some(cols);
+            self.scale = Some(scale);
         }
 
         let layout_columns = self.layout_columns.unwrap();
@@ -54,13 +70,16 @@ impl LayerView {
         let panel_width = width as f64 / layout_columns as f64;
         let panel_height = height as f64 / layout_rows as f64;
 
-        let x_scale = panel_width / som_cols as f64;
-        let y_scale = panel_height / som_rows as f64;
-        let scale = (if x_scale < y_scale { x_scale } else { y_scale }) as i32;
+        //let x_scale = panel_width / som_cols as f64;
+        //let y_scale = panel_height / som_rows as f64;
+        let scale = self.scale.unwrap(); // (if x_scale < y_scale { x_scale } else { y_scale }) as i32;
 
         let ranges = som.weights().ranges();
 
         let color_map = LinearColorMap::new(&[&GREEN, &YELLOW, &RED]);
+        let names = &self.names;
+        let test_style =
+            TextStyle::from(("sans-serif", 14).into_font()).pos(Pos::new(HPos::Left, VPos::Bottom));
 
         self.window.draw(|b| {
             let root = b.into_drawing_area();
@@ -70,7 +89,7 @@ impl LayerView {
                 let lay_row = index / layout_columns;
                 let lay_col = index % layout_columns;
                 let x_min = margin + (lay_col as f64 * panel_width) as i32;
-                let y_min = margin + (lay_row as f64 * panel_height) as i32;
+                let y_min = margin + heading + (lay_row as f64 * panel_height) as i32;
                 for (idx, row) in som.weights().iter_rows().enumerate() {
                     let (r, c) = som.to_row_col(idx);
                     let v = row[col];
@@ -96,9 +115,32 @@ impl LayerView {
                     ShapeStyle::from(&BLACK),
                 ))
                 .unwrap();
+                root.draw_text(&names[col], &test_style, (x_min, y_min - 1))
+                    .unwrap();
+                let steps = 50;
+                let total_height = scale * som.nrows() as i32 - 40;
+                let total_width = scale * som.ncols() as i32;
+                let x = x_min + total_width;
+                for i in 0..steps {
+                    let value = i as f64 / steps as f64;
+                    let color = color_map.get_color(0.0, 1.0, value);
+                    let y = y_min + total_height + 20 - (total_height as f64 * value) as i32;
+                    root.draw(&Rectangle::new(
+                        [
+                            (x + 3, y),
+                            (
+                                x + legend - 3,
+                                y + (total_height as f64 / steps as f64) as i32,
+                            ),
+                        ],
+                        ShapeStyle::from(&color).filled(),
+                    ))
+                    .unwrap();
+                }
             }
         });
     }
+
     /// Calculates the required columns as a vector of (index, column index).
     fn get_columns(&self, som: &Som) -> Vec<(usize, usize)> {
         let params = som.params();
@@ -127,12 +169,14 @@ impl LayerView {
         som_rows: usize,
         som_cols: usize,
         data_columns: usize,
-    ) -> usize {
+        heading: i32,
+        legend: i32,
+    ) -> (usize, i32) {
         (1..data_columns)
             .map(|cols| {
                 let layout_rows = (data_columns as f64 / cols as f64).ceil() as usize;
-                let panel_width = width as f64 / cols as f64;
-                let panel_height = height as f64 / layout_rows as f64;
+                let panel_width = (width as f64 / cols as f64) - legend as f64;
+                let panel_height = (height as f64 / layout_rows as f64) - heading as f64;
 
                 let x_scale = panel_width / som_cols as f64;
                 let y_scale = panel_height / som_rows as f64;
@@ -142,7 +186,6 @@ impl LayerView {
             })
             .max_by(|(_col1, scale1), (_col2, scale2)| scale1.cmp(scale2))
             .unwrap()
-            .0
     }
 }
 
@@ -171,7 +214,7 @@ mod test {
             .with_fps_skip(10.0)
             .build();
 
-        let mut view = LayerView::new(win, &[0], None);
+        let mut view = LayerView::new(win, &[0], &["A", "B", "C", "D", "E"], None);
 
         //while view.window.is_open() {
         view.draw(&som);

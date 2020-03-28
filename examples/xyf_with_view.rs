@@ -55,7 +55,7 @@ fn run_xyf(graphics: bool) {
             .with_dimensions(800, 500)
             .with_fps_skip(2.0)
             .build();
-        Some(LayerView::new(win, &[], None))
+        Some(LayerView::new(win, &[], &cols, None))
     } else {
         None
     };

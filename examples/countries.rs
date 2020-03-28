@@ -40,11 +40,11 @@ fn main() {
 
     let win_x = WindowBuilder::new()
         .with_position((10, 10))
-        .with_dimensions(600, 500)
+        .with_dimensions(1000, 500)
         .with_fps_skip(5.0)
         .build();
 
-    let mut view_x = LayerView::new(win_x, &[0], None);
+    let mut view_x = LayerView::new(win_x, &[0], &proc.data().names_ref_vec(), None);
 
     while view_x.is_open() {
         som.epoch(proc.data(), None);
