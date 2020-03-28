@@ -35,6 +35,18 @@ pub struct LinearTransform {
     offset: f64,
 }
 
+impl LinearTransform {
+    pub fn transform(&self, value: f64) -> f64 {
+        value * self.scale + self.offset
+    }
+    pub fn inverse(&self) -> LinearTransform {
+        LinearTransform {
+            scale: 1.0 / self.scale,
+            offset: -self.offset / self.scale,
+        }
+    }
+}
+
 /// Normalize a data frame, with a [`Norm`](struct.Norm.html) and scale per column.
 /// # Returns
 /// A tuple of: (normalized data frame, vector of [`LinearTransform`](struct.LinearTransform.html) for de-normalization, one per column).
@@ -81,16 +93,24 @@ pub fn normalize(
         .zip(norm)
         .zip(scale)
         .map(|((((p1, p2), count), norm), scale)| match norm {
-            Norm::Unit => LinearTransform {
-                scale: scale * 1.0 / (p2 - p1),
-                offset: -*p1,
-            },
+            Norm::Unit => {
+                let sc = scale / (p2 - p1);
+                LinearTransform {
+                    //scale: scale * 1.0 / (p2 - p1),
+                    //offset: -*p1,
+                    scale: sc,
+                    offset: -*p1 * sc,
+                }
+            }
             Norm::Gauss => {
                 let sd = ((count as f64 * p2 - p1.powi(2)) / (count * (count - 1)) as f64).sqrt();
                 let mean = p1 / count as f64;
+                let sc = scale / (2.0 * sd);
                 LinearTransform {
-                    scale: scale * 1.0 / (2.0 * sd),
-                    offset: -(mean - sd),
+                    //scale: scale * 1.0 / (2.0 * sd),
+                    //offset: -(mean - sd),
+                    scale: sc,
+                    offset: -(mean - sd) * sc,
                 }
             }
             Norm::None => LinearTransform {
@@ -108,17 +128,12 @@ pub fn normalize(
             denorm
                 .iter()
                 .zip(row)
-                .map(|(de, v)| (v + de.offset) * de.scale),
+                //.map(|(de, v)| (v + de.offset) * de.scale),
+                .map(|(de, v)| de.transform(*v)),
         );
     }
 
-    /*let denorm = denorm
-    .iter()
-    .map(|de| DeNorm {
-        scale: 1.0 / de.scale,
-        offset: -de.offset,
-    })
-    .collect();*/
+    let denorm = denorm.iter().map(|de| de.inverse()).collect();
     (df, denorm)
 }
 
@@ -133,7 +148,8 @@ pub fn denormalize(data: &DataFrame<f64>, denorm: &[LinearTransform]) -> DataFra
             denorm
                 .iter()
                 .zip(row)
-                .map(|(de, v)| v / de.scale - de.offset),
+                //.map(|(de, v)| v / de.scale - de.offset),
+                .map(|(de, v)| de.transform(*v)),
         );
     }
     df
@@ -165,6 +181,7 @@ mod tests {
             &[Norm::Unit, Norm::Gauss, Norm::None],
             &[1.0, 1.0, 0.5],
         );
+
         assert_eq!(data.nrows(), df.nrows());
         assert_eq!(data.ncols(), df.ncols());
 
