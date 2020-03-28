@@ -30,19 +30,19 @@ impl Norm {
 
 /// De-normalization parameters. Obtained from [`normalize`](fn.normalize.html).
 #[derive(Debug)]
-pub struct DeNorm {
+pub struct LinearTransform {
     scale: f64,
     offset: f64,
 }
 
 /// Normalize a data frame, with a [`Norm`](struct.Norm.html) and scale per column.
 /// # Returns
-/// A tuple of: (normalized data frame, vector of [`DeNorm`](struct.DeNorm.html), one per column).
+/// A tuple of: (normalized data frame, vector of [`LinearTransform`](struct.LinearTransform.html) for de-normalization, one per column).
 pub fn normalize(
     data: &DataFrame<f64>,
     norm: &[Norm],
     scale: &[f64],
-) -> (DataFrame<f64>, Vec<DeNorm>) {
+) -> (DataFrame<f64>, Vec<LinearTransform>) {
     let mut counts = vec![0; data.ncols()];
     let mut params: Vec<_> = norm
         .iter()
@@ -81,19 +81,19 @@ pub fn normalize(
         .zip(norm)
         .zip(scale)
         .map(|((((p1, p2), count), norm), scale)| match norm {
-            Norm::Unit => DeNorm {
+            Norm::Unit => LinearTransform {
                 scale: scale * 1.0 / (p2 - p1),
                 offset: -*p1,
             },
             Norm::Gauss => {
                 let sd = ((count as f64 * p2 - p1.powi(2)) / (count * (count - 1)) as f64).sqrt();
                 let mean = p1 / count as f64;
-                DeNorm {
+                LinearTransform {
                     scale: scale * 1.0 / (2.0 * sd),
                     offset: -(mean - sd),
                 }
             }
-            Norm::None => DeNorm {
+            Norm::None => LinearTransform {
                 scale: *scale,
                 offset: 0.0,
             },
@@ -122,10 +122,10 @@ pub fn normalize(
     (df, denorm)
 }
 
-/// De-normalize a data frame, with a [`DeNorm`](struct.DeNorm.html) per column, as obtained from [`normalize`](fn.normalize.html).
+/// De-normalize a data frame, with a [`LinearTransform`](struct.DeNorm.html) per column, as obtained from [`normalize`](fn.normalize.html).
 /// # Returns
 /// A de-normalized data frame
-pub fn denormalize(data: &DataFrame<f64>, denorm: &[DeNorm]) -> DataFrame<f64> {
+pub fn denormalize(data: &DataFrame<f64>, denorm: &[LinearTransform]) -> DataFrame<f64> {
     let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
     let mut df = DataFrame::<f64>::empty(&cols);
     for row in data.iter_rows() {

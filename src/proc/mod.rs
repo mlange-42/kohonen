@@ -1,7 +1,7 @@
 //! Pre- and post-processing of SOM training data, SOM creation.
 
 use crate::calc::neighborhood::Neighborhood;
-use crate::calc::norm::{normalize, DeNorm, Norm};
+use crate::calc::norm::{normalize, LinearTransform, Norm};
 use crate::data::DataFrame;
 use crate::map::som::{DecayParam, Layer, Som, SomParams};
 use csv::{ReaderBuilder, StringRecord};
@@ -112,7 +112,7 @@ pub struct Processor {
     data: DataFrame<f64>,
     layers: Vec<Layer>,
     norm: Vec<Norm>,
-    denorm: Vec<DeNorm>,
+    denorm: Vec<LinearTransform>,
     scale: Vec<f64>,
 }
 
@@ -134,7 +134,7 @@ impl Processor {
     pub fn norm(&self) -> &[Norm] {
         &self.norm
     }
-    pub fn denorm(&self) -> &[DeNorm] {
+    pub fn denorm(&self) -> &[LinearTransform] {
         &self.denorm
     }
     pub fn scale(&self) -> &[f64] {
