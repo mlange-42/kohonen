@@ -1,6 +1,5 @@
 //! Viewer for SOMs as heatmaps.
 
-use crate::calc::neighborhood::Neighborhood;
 use crate::map::som::Som;
 use easy_graph::color::style::{ShapeStyle, BLACK, GREEN, RED, WHITE, YELLOW};
 use easy_graph::color::{ColorMap, LinearColorMap};
@@ -29,10 +28,7 @@ impl LayerView {
         self.window.is_open()
     }
     /// Draws the given SOM. Should be called only for the same SOM repeatedly, not for different SOMs!
-    pub fn draw<N>(&mut self, som: &Som<N>)
-    where
-        N: Neighborhood,
-    {
+    pub fn draw(&mut self, som: &Som) {
         let columns = self.get_columns(som);
 
         let margin = 5_i32;
@@ -103,10 +99,7 @@ impl LayerView {
         });
     }
     /// Calculates the required columns as a vector of (index, column index).
-    fn get_columns<N>(&self, som: &Som<N>) -> Vec<(usize, usize)>
-    where
-        N: Neighborhood,
-    {
+    fn get_columns(&self, som: &Som) -> Vec<(usize, usize)> {
         let params = som.params();
         let mut columns = vec![];
         if params.layers().is_empty() || self.layers.is_empty() {
@@ -154,7 +147,7 @@ impl LayerView {
 
 #[cfg(test)]
 mod test {
-    use crate::calc::neighborhood::GaussNeighborhood;
+    use crate::calc::neighborhood::Neighborhood;
     use crate::map::som::{DecayParam, Layer, Som, SomParams};
     use crate::ui::layer_view::LayerView;
     use easy_graph::ui::window::WindowBuilder;
@@ -164,7 +157,7 @@ mod test {
         let dim = 5;
         let params = SomParams::xyf(
             1000,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.1, 0.01),
             DecayParam::lin(10.0, 0.6),
             DecayParam::exp(0.25, 0.0001),

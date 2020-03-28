@@ -2,7 +2,7 @@ use easy_graph::color::style::{BLACK, BLUE, WHITE};
 use easy_graph::ui::drawing::IntoDrawingArea;
 use easy_graph::ui::element::{Circle, PathElement};
 use easy_graph::ui::window::WindowBuilder;
-use kohonen::calc::neighborhood::GaussNeighborhood;
+use kohonen::calc::neighborhood::Neighborhood;
 use kohonen::data::DataFrame;
 use kohonen::map::som::{DecayParam, Layer, Som, SomParams};
 use kohonen::ui::LayerView;
@@ -18,7 +18,7 @@ fn run_xyf(graphics: bool) {
     let cols = ["A", "B", "C", "D"];
     let params = SomParams::xyf(
         1000,
-        GaussNeighborhood(),
+        Neighborhood::Gauss,
         DecayParam::lin(0.1, 0.01),
         DecayParam::lin(10.0, 0.6),
         DecayParam::exp(0.25, 0.0001),

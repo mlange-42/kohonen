@@ -1,16 +1,31 @@
 //! Normalization and de-normalization of data.
 
 use crate::data::DataFrame;
+use crate::ParseEnumError;
 
 /// Normalization types.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Norm {
     /// Normalize to [0, 1].
-    Unity,
+    Unit,
     /// Normalize to a mean of 0.5 and standard deviation of 0.5.
     Gauss,
     /// No normalization
     None,
+}
+
+impl Norm {
+    pub fn from_string(str: &str) -> Result<Norm, ParseEnumError> {
+        match str {
+            "unit" => Ok(Norm::Unit),
+            "gauss" => Ok(Norm::Gauss),
+            "none" => Ok(Norm::None),
+            _ => Err(ParseEnumError(format!(
+                "Not a normalizer: {}. Must be one of (unit|gauss|none)",
+                str
+            ))),
+        }
+    }
 }
 
 /// De-normalization parameters. Obtained from [`normalize`](fn.normalize.html).
@@ -32,7 +47,7 @@ pub fn normalize(
     let mut params: Vec<_> = norm
         .iter()
         .map(|n| match n {
-            Norm::Unity => (std::f64::MAX, std::f64::MIN),
+            Norm::Unit => (std::f64::MAX, std::f64::MIN),
             _ => (0.0, 0.0),
         })
         .collect();
@@ -42,7 +57,7 @@ pub fn normalize(
             let norm = &norm[i];
             if !v.is_nan() {
                 match norm {
-                    Norm::Unity => {
+                    Norm::Unit => {
                         if *v < params[i].0 {
                             params[i].0 = *v
                         }
@@ -66,7 +81,7 @@ pub fn normalize(
         .zip(norm)
         .zip(scale)
         .map(|((((p1, p2), count), norm), scale)| match norm {
-            Norm::Unity => DeNorm {
+            Norm::Unit => DeNorm {
                 scale: scale * 1.0 / (p2 - p1),
                 offset: -*p1,
             },
@@ -147,7 +162,7 @@ mod tests {
 
         let (df, denorm) = normalize(
             &data,
-            &[Norm::Unity, Norm::Gauss, Norm::None],
+            &[Norm::Unit, Norm::Gauss, Norm::None],
             &[1.0, 1.0, 0.5],
         );
         assert_eq!(data.nrows(), df.nrows());

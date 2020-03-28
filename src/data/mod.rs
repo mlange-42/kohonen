@@ -183,9 +183,12 @@ where
                 means[col] = means[col] + v;
             }
         }
-        for col in 0..ncol {
-            means[col] = means[col] / nrows;
+        for mn in means.iter_mut() {
+            *mn = *mn / nrows;
         }
+        /*for col in 0..ncol {
+            means[col] = means[col] / nrows;
+        }*/
         means
     }
 }

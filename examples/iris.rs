@@ -1,5 +1,5 @@
 use easy_graph::ui::window::WindowBuilder;
-use kohonen::calc::neighborhood::GaussNeighborhood;
+use kohonen::calc::neighborhood::Neighborhood;
 use kohonen::map::som::DecayParam;
 use kohonen::proc::{InputLayer, ProcessorBuilder};
 use kohonen::ui::LayerView;
@@ -19,7 +19,7 @@ fn main() {
         16,
         20,
         5000,
-        GaussNeighborhood(),
+        Neighborhood::Gauss,
         DecayParam::lin(0.2, 0.01),
         DecayParam::lin(8.0, 0.5),
         DecayParam::exp(0.2, 0.001),

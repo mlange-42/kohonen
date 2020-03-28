@@ -217,7 +217,7 @@ impl Processor {
                 let levels = &cat_levels[idx];
                 colnames.extend(levels.iter().map(|l| base.clone() + l));
             } else {
-                colnames.extend(lay.names.iter().map(|l| l.clone()));
+                colnames.extend(lay.names.iter().cloned());
             }
         }
         let mut df = DataFrame::<f64>::empty(&colnames.iter().map(|x| &**x).collect::<Vec<_>>());
@@ -279,26 +279,23 @@ impl Processor {
         })
     }
 
-    pub fn create_som<N>(
+    pub fn create_som(
         &self,
         nrows: usize,
         ncols: usize,
         epochs: u32,
-        neighborhood: N,
+        neighborhood: Neighborhood,
         alpha: DecayParam,
         radius: DecayParam,
         decay: DecayParam,
-    ) -> Som<N>
-    where
-        N: Neighborhood,
-    {
+    ) -> Som {
         let params = SomParams::xyf(
             epochs,
             neighborhood,
             alpha,
             radius,
             decay,
-            self.layers.iter().map(|l| l.clone()).collect(),
+            self.layers.to_vec(),
         );
 
         Som::new(self.data.ncols(), nrows, ncols, params)
@@ -307,12 +304,10 @@ impl Processor {
 
 #[cfg(test)]
 mod test {
-    use crate::calc::neighborhood::GaussNeighborhood;
+    use crate::calc::neighborhood::Neighborhood;
     use crate::calc::norm::Norm;
     use crate::map::som::DecayParam;
     use crate::proc::{InputLayer, ProcessorBuilder};
-    use crate::ui::LayerView;
-    use easy_graph::ui::window::WindowBuilder;
 
     #[test]
     fn create_proc() {
@@ -331,11 +326,11 @@ mod test {
             .build_from_file("example_data/iris.csv")
             .unwrap();
 
-        let mut som = proc.create_som(
+        let som = proc.create_som(
             16,
             20,
             1000,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(8.0, 0.5),
             DecayParam::exp(0.2, 0.001),

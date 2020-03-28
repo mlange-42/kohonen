@@ -4,31 +4,26 @@ use crate::calc::metric::{Metric, SqEuclideanMetric};
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
 use crate::data::DataFrame;
+use crate::ParseEnumError;
 use rand::prelude::*;
 use std::cmp;
 
 /// SOM training parameters
-pub struct SomParams<N>
-where
-    N: Neighborhood,
-{
+pub struct SomParams {
     epochs: u32,
     //metric: M,
-    neighborhood: N,
+    neighborhood: Neighborhood,
     alpha: DecayParam,
     radius: DecayParam,
     decay: DecayParam,
     layers: Vec<Layer>,
 }
 
-impl<N> SomParams<N>
-where
-    N: Neighborhood,
-{
+impl SomParams {
     /// Creates parameters for a simple SOM with a simple layer.
     pub fn simple(
         epochs: u32,
-        neighborhood: N,
+        neighborhood: Neighborhood,
         alpha: DecayParam,
         radius: DecayParam,
         decay: DecayParam,
@@ -46,7 +41,7 @@ where
     /// Creates parameters for a multi-layers SOM (Super-SOM) using the X-Y-Fused algorithm (XYF).
     pub fn xyf(
         epochs: u32,
-        neighborhood: N,
+        neighborhood: Neighborhood,
         alpha: DecayParam,
         radius: DecayParam,
         decay: DecayParam,
@@ -107,19 +102,41 @@ impl Layer {
 }
 
 /// Decay functions for learing parameters.
+#[derive(Debug)]
 pub enum DecayFunction {
     /// Linear decay
     Linear,
     /// Exponential decay
     Exponential,
 }
+impl DecayFunction {
+    pub fn from_string(str: &str) -> Result<DecayFunction, ParseEnumError> {
+        match str {
+            "lin" => Ok(DecayFunction::Linear),
+            "exp" => Ok(DecayFunction::Exponential),
+            _ => Err(ParseEnumError(format!(
+                "Not a decay function: {}. Must be one of (lin|exp)",
+                str
+            ))),
+        }
+    }
+}
 /// Decay parameters for learing parameters.
+#[derive(Debug)]
 pub struct DecayParam {
     start: f64,
     end: f64,
     function: DecayFunction,
 }
 impl DecayParam {
+    /// Creates a learning parameter from start and end value and decay function.
+    pub fn new(start: f64, end: f64, function: DecayFunction) -> Self {
+        DecayParam {
+            start,
+            end,
+            function,
+        }
+    }
     /// Creates a linearly decaying learning parameter from start and end value.
     pub fn lin(start: f64, end: f64) -> Self {
         DecayParam {
@@ -153,26 +170,20 @@ impl DecayParam {
 
 /// Super-SOM core type.
 #[allow(dead_code)]
-pub struct Som<N>
-where
-    N: Neighborhood,
-{
+pub struct Som {
     dims: usize,
     nrows: usize,
     ncols: usize,
     weights: DataFrame<f64>,
     distances_sq: DataFrame<f32>,
-    params: SomParams<N>,
+    params: SomParams,
     epoch: u32,
 }
 
 #[allow(dead_code)]
-impl<N> Som<N>
-where
-    N: Neighborhood,
-{
+impl Som {
     /// Creates a new SOM or Super-SOM
-    pub fn new(dims: usize, nrows: usize, ncols: usize, params: SomParams<N>) -> Self {
+    pub fn new(dims: usize, nrows: usize, ncols: usize, params: SomParams) -> Self {
         let mut som = Som {
             dims,
             nrows,
@@ -187,7 +198,7 @@ where
     }
 
     /// Returns a reference to the SOM's parameters.
-    pub fn params(&self) -> &SomParams<N> {
+    pub fn params(&self) -> &SomParams {
         &self.params
     }
 
@@ -263,7 +274,7 @@ where
         let mut indices: Vec<_> = (0..samples.nrows()).collect();
         rng.shuffle(&mut indices);
 
-        let cnt = cmp::min(count.unwrap_or(samples.nrows()), samples.nrows());
+        let cnt = cmp::min(count.unwrap_or_else(|| samples.nrows()), samples.nrows());
 
         for idx in indices.iter().take(cnt) {
             let sample = samples.get_row(*idx);
@@ -339,7 +350,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::calc::neighborhood::GaussNeighborhood;
+    use crate::calc::neighborhood::Neighborhood;
     use crate::data::DataFrame;
     use crate::map::som::{DecayParam, Som, SomParams};
     use rand::Rng;
@@ -348,7 +359,7 @@ mod test {
     fn create_som() {
         let params = SomParams::simple(
             100,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
@@ -361,7 +372,7 @@ mod test {
     fn create_large_som() {
         let params = SomParams::simple(
             100,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
@@ -378,7 +389,7 @@ mod test {
     fn train_step() {
         let params = SomParams::simple(
             100,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
@@ -392,7 +403,7 @@ mod test {
         let cols = ["A", "B", "C", "D", "E"];
         let params = SomParams::simple(
             10,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(5.0, 0.5),
             DecayParam::exp(0.2, 0.001),
