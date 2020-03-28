@@ -45,6 +45,9 @@ pub struct Cli {
     /// Disable GUI
     #[structopt(long = "--no-gui")]
     nogui: bool,
+    /// Disable GUI
+    #[structopt(long = "--fps")]
+    fps: Option<f64>,
     /// No-data value. Default 'NA'.
     #[structopt(long = "--no-data")]
     no_data: Option<String>,
@@ -62,6 +65,7 @@ pub struct CliParsed {
     pub neigh: Neighborhood,
     pub gui: bool,
     pub no_data: String,
+    pub fps: f64,
 }
 
 impl CliParsed {
@@ -80,6 +84,7 @@ impl CliParsed {
             },
             gui: !cli.nogui,
             no_data: cli.no_data.unwrap_or("NA".to_string()),
+            fps: cli.fps.unwrap_or(2.0),
         }
     }
 

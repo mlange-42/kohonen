@@ -2,7 +2,9 @@
 
 use crate::map::som::Som;
 use easy_graph::color::style::text_anchor::{HPos, Pos, VPos};
-use easy_graph::color::style::{IntoFont, ShapeStyle, TextStyle, BLACK, GREEN, RED, WHITE, YELLOW};
+use easy_graph::color::style::{
+    IntoFont, Palette, Palette99, ShapeStyle, TextStyle, BLACK, GREEN, RED, WHITE, YELLOW,
+};
 use easy_graph::color::{ColorMap, LinearColorMap};
 use easy_graph::ui::drawing::IntoDrawingArea;
 use easy_graph::ui::element::Rectangle;
@@ -39,6 +41,118 @@ impl LayerView {
     }
     /// Draws the given SOM. Should be called only for the same SOM repeatedly, not for different SOMs!
     pub fn draw(&mut self, som: &Som) {
+        let params = som.params();
+        if (self.layers.len() == 1 && params.layers()[self.layers[0]].categorical())
+            || (self.layers.is_empty()
+                && params.layers().len() == 1
+                && params.layers()[0].categorical())
+        {
+            self.draw_classes(som);
+        } else {
+            self.draw_columns(som);
+        }
+    }
+
+    fn draw_classes(&mut self, som: &Som) {
+        let params = som.params();
+        let layer = if self.layers.is_empty() {
+            0
+        } else {
+            self.layers[0]
+        };
+        let start_col = params
+            .layers()
+            .iter()
+            .enumerate()
+            .take_while(|(i, _)| *i != layer)
+            .map(|(_, l)| l.ncols())
+            .sum();
+        let classes: Vec<_> = self.names[start_col..(start_col + params.layers()[layer].ncols())]
+            .iter()
+            .map(|n| n.splitn(2, ':').nth(1).unwrap())
+            .collect();
+
+        let columns = self.get_columns(som);
+
+        let margin = 5_i32;
+        let heading = 16_i32;
+        let legend = 120_i32;
+
+        let (som_rows, som_cols) = som.size();
+        let (width, height) = self.window.size();
+        let width = width - 2 * margin as usize;
+        let height = height - 2 * margin as usize;
+
+        if self.layout_columns.is_none() {
+            let (cols, scale) =
+                Self::calc_layout_columns(width, height, som_rows, som_cols, 1, heading, legend);
+            self.layout_columns = Some(cols);
+            self.scale = Some(scale);
+        }
+
+        let scale = self.scale.unwrap();
+        let test_style =
+            TextStyle::from(("sans-serif", 14).into_font()).pos(Pos::new(HPos::Left, VPos::Top));
+
+        self.window.draw(|b| {
+            let root = b.into_drawing_area();
+            root.fill(&WHITE).unwrap();
+
+            let x_min = margin;
+            let y_min = margin + heading;
+            for (idx, row) in som.weights().iter_rows().enumerate() {
+                let (r, c) = som.to_row_col(idx);
+                let x = x_min + (c as i32 * scale);
+                let y = y_min + (r as i32 * scale);
+
+                let mut v_max = std::f64::MIN;
+                let mut idx_max = 0;
+                for (index, col) in columns.iter() {
+                    let v = row[*col];
+                    if v > v_max {
+                        v_max = v;
+                        idx_max = *index;
+                    }
+                }
+
+                let color = Palette99::pick(idx_max); //color_map.get_color(v_min, v_max, v);
+
+                root.draw(&Rectangle::new(
+                    [(x, y), (x + scale, y + scale)],
+                    ShapeStyle::from(&color).filled(),
+                ))
+                .unwrap();
+            }
+            root.draw(&Rectangle::new(
+                [
+                    (x_min, y_min),
+                    (
+                        x_min + scale * som_cols as i32,
+                        y_min + scale * som_rows as i32,
+                    ),
+                ],
+                ShapeStyle::from(&BLACK),
+            ))
+            .unwrap();
+
+            let x = x_min + som.ncols() as i32 * scale + 10;
+            for (i, class) in classes.iter().enumerate() {
+                let color = Palette99::pick(i);
+                root.draw(&Rectangle::new(
+                    [
+                        (x, y_min + i as i32 * 14),
+                        (x + 10, y_min + i as i32 * 14 + 10),
+                    ],
+                    ShapeStyle::from(&color).filled(),
+                ))
+                .unwrap();
+                root.draw_text(class, &test_style, (x + 14, y_min + i as i32 * 14))
+                    .unwrap();
+            }
+        });
+    }
+
+    fn draw_columns(&mut self, som: &Som) {
         let columns = self.get_columns(som);
 
         let margin = 5_i32;
@@ -70,9 +184,7 @@ impl LayerView {
         let panel_width = width as f64 / layout_columns as f64;
         let panel_height = height as f64 / layout_rows as f64;
 
-        //let x_scale = panel_width / som_cols as f64;
-        //let y_scale = panel_height / som_rows as f64;
-        let scale = self.scale.unwrap(); // (if x_scale < y_scale { x_scale } else { y_scale }) as i32;
+        let scale = self.scale.unwrap();
 
         let ranges = som.weights().ranges();
 
@@ -172,20 +284,31 @@ impl LayerView {
         heading: i32,
         legend: i32,
     ) -> (usize, i32) {
-        (1..data_columns)
-            .map(|cols| {
-                let layout_rows = (data_columns as f64 / cols as f64).ceil() as usize;
-                let panel_width = (width as f64 / cols as f64) - legend as f64;
-                let panel_height = (height as f64 / layout_rows as f64) - heading as f64;
+        if data_columns == 1 {
+            let panel_width = width as f64 - legend as f64;
+            let panel_height = height as f64 - heading as f64;
 
-                let x_scale = panel_width / som_cols as f64;
-                let y_scale = panel_height / som_rows as f64;
-                let scale = (if x_scale < y_scale { x_scale } else { y_scale }) as i32;
+            let x_scale = panel_width / som_cols as f64;
+            let y_scale = panel_height / som_rows as f64;
+            let scale = (if x_scale < y_scale { x_scale } else { y_scale }) as i32;
 
-                (cols, scale)
-            })
-            .max_by(|(_col1, scale1), (_col2, scale2)| scale1.cmp(scale2))
-            .unwrap()
+            (1, scale)
+        } else {
+            (1..data_columns)
+                .map(|cols| {
+                    let layout_rows = (data_columns as f64 / cols as f64).ceil() as usize;
+                    let panel_width = (width as f64 / cols as f64) - legend as f64;
+                    let panel_height = (height as f64 / layout_rows as f64) - heading as f64;
+
+                    let x_scale = panel_width / som_cols as f64;
+                    let y_scale = panel_height / som_rows as f64;
+                    let scale = (if x_scale < y_scale { x_scale } else { y_scale }) as i32;
+
+                    (cols, scale)
+                })
+                .max_by(|(_col1, scale1), (_col2, scale2)| scale1.cmp(scale2))
+                .unwrap()
+        }
     }
 }
 

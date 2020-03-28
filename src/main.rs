@@ -20,25 +20,35 @@ fn main() {
         parsed.size.0,
         parsed.episodes,
         parsed.neigh.clone(),
-        parsed.alpha,
-        parsed.radius,
-        parsed.decay,
+        parsed.alpha.clone(),
+        parsed.radius.clone(),
+        parsed.decay.clone(),
     );
 
-    let mut viewer = if parsed.gui {
-        let win = WindowBuilder::new()
-            .with_dimensions(1000, 750)
-            .with_fps_skip(2.0)
-            .build();
-        Some(LayerView::new(win, &[], &proc.data().names_ref_vec(), None))
+    let mut viewers: Option<Vec<LayerView>> = if parsed.gui {
+        Some(
+            proc.layers()
+                .iter()
+                .enumerate()
+                .map(|(i, _)| {
+                    let win = WindowBuilder::new()
+                        .with_dimensions(800, 700)
+                        .with_fps_skip(parsed.fps)
+                        .build();
+                    LayerView::new(win, &[i], &proc.data().names_ref_vec(), None)
+                })
+                .collect(),
+        )
     } else {
         None
     };
 
-    if let Some(view) = &mut viewer {
-        while view.is_open() {
+    if let Some(views) = &mut viewers {
+        while views.iter().fold(false, |a, v| a || v.is_open()) {
             som.epoch(&proc.data(), None);
-            view.draw(&som);
+            for view in views.iter_mut() {
+                view.draw(&som);
+            }
         }
     } else {
         while let Some(()) = som.epoch(&proc.data(), None) {}

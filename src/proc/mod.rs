@@ -120,6 +120,7 @@ impl ProcessorBuilder {
     }
 }
 
+#[allow(dead_code)]
 pub struct Processor {
     input_layers: Vec<InputLayer>,
     data: DataFrame,
@@ -165,7 +166,7 @@ impl Processor {
         csv_options: &CsvOptions,
     ) -> Result<Processor, Box<dyn Error>> {
         let no_data = &csv_options.no_data;
-        println!("|{}|", no_data);
+
         // Read csv
         let mut reader = ReaderBuilder::new()
             .delimiter(csv_options.delimiter)

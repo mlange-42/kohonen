@@ -102,7 +102,7 @@ impl Layer {
 }
 
 /// Decay functions for learing parameters.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DecayFunction {
     /// Linear decay
     Linear,
@@ -122,7 +122,7 @@ impl DecayFunction {
     }
 }
 /// Decay parameters for learing parameters.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DecayParam {
     start: f64,
     end: f64,
