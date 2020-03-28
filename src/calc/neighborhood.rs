@@ -1,7 +1,45 @@
 //! Neighborhoods (i.e. kernels), for effect on nearby SOM-units.
 
+use crate::ParseEnumError;
+
+/// Neighborhoods.
+#[derive(Debug, Clone)]
+pub enum Neighborhood {
+    Gauss,
+}
+impl Neighborhood {
+    /// Calculates the weight, depending on the squared(!) distance.
+    pub fn weight(&self, distance_sq: f64) -> f64 {
+        match self {
+            Neighborhood::Gauss => {
+                if distance_sq == 0.0 {
+                    1.0
+                } else {
+                    (-0.5 * distance_sq).exp()
+                }
+            }
+        }
+    }
+    /// Maximum search distance in the SOM. Not squared!
+    pub fn radius(&self) -> f64 {
+        match self {
+            Neighborhood::Gauss => 3.0,
+        }
+    }
+    pub fn from_string(str: &str) -> Result<Neighborhood, ParseEnumError> {
+        match str {
+            "gauss" => Ok(Neighborhood::Gauss),
+            _ => Err(ParseEnumError(format!(
+                "Not a neighborhood: {}. Must be one of (gauss|<todo>)",
+                str
+            ))),
+        }
+    }
+}
+
+/*
 /// Trait for neighborhoods.
-pub trait Neighborhood {
+pub trait Neighborhood: Debug + Copy {
     /// Calculates the weight, depending on the squared(!) distance.
     fn weight(&self, distance_sq: f64) -> f64;
     /// Maximum search distance in the SOM. Not squared!
@@ -9,6 +47,7 @@ pub trait Neighborhood {
 }
 
 /// Gaussian (normal) neighborhood.
+#[derive(Debug, Copy)]
 pub struct GaussNeighborhood();
 
 impl Neighborhood for GaussNeighborhood {
@@ -23,14 +62,14 @@ impl Neighborhood for GaussNeighborhood {
         3.0
     }
 }
-
+*/
 #[cfg(test)]
 mod test {
-    use crate::calc::neighborhood::{GaussNeighborhood, Neighborhood};
+    use crate::calc::neighborhood::Neighborhood;
 
     #[test]
     fn gauss() {
-        let neigh = GaussNeighborhood();
+        let neigh = Neighborhood::Gauss;
         assert_eq!(neigh.weight(0.0), 1.0);
         assert!(neigh.weight(3.0 * 3.0) < 0.12);
     }

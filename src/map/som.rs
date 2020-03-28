@@ -4,31 +4,26 @@ use crate::calc::metric::{Metric, SqEuclideanMetric};
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
 use crate::data::DataFrame;
+use crate::ParseEnumError;
 use rand::prelude::*;
 use std::cmp;
 
 /// SOM training parameters
-pub struct SomParams<N>
-where
-    N: Neighborhood,
-{
+pub struct SomParams {
     epochs: u32,
     //metric: M,
-    neighborhood: N,
+    neighborhood: Neighborhood,
     alpha: DecayParam,
     radius: DecayParam,
     decay: DecayParam,
     layers: Vec<Layer>,
 }
 
-impl<N> SomParams<N>
-where
-    N: Neighborhood,
-{
+impl SomParams {
     /// Creates parameters for a simple SOM with a simple layer.
     pub fn simple(
         epochs: u32,
-        neighborhood: N,
+        neighborhood: Neighborhood,
         alpha: DecayParam,
         radius: DecayParam,
         decay: DecayParam,
@@ -46,7 +41,7 @@ where
     /// Creates parameters for a multi-layers SOM (Super-SOM) using the X-Y-Fused algorithm (XYF).
     pub fn xyf(
         epochs: u32,
-        neighborhood: N,
+        neighborhood: Neighborhood,
         alpha: DecayParam,
         radius: DecayParam,
         decay: DecayParam,
@@ -107,19 +102,41 @@ impl Layer {
 }
 
 /// Decay functions for learing parameters.
+#[derive(Debug, Clone)]
 pub enum DecayFunction {
     /// Linear decay
     Linear,
     /// Exponential decay
     Exponential,
 }
+impl DecayFunction {
+    pub fn from_string(str: &str) -> Result<DecayFunction, ParseEnumError> {
+        match str {
+            "lin" => Ok(DecayFunction::Linear),
+            "exp" => Ok(DecayFunction::Exponential),
+            _ => Err(ParseEnumError(format!(
+                "Not a decay function: {}. Must be one of (lin|exp)",
+                str
+            ))),
+        }
+    }
+}
 /// Decay parameters for learing parameters.
+#[derive(Debug, Clone)]
 pub struct DecayParam {
     start: f64,
     end: f64,
     function: DecayFunction,
 }
 impl DecayParam {
+    /// Creates a learning parameter from start and end value and decay function.
+    pub fn new(start: f64, end: f64, function: DecayFunction) -> Self {
+        DecayParam {
+            start,
+            end,
+            function,
+        }
+    }
     /// Creates a linearly decaying learning parameter from start and end value.
     pub fn lin(start: f64, end: f64) -> Self {
         DecayParam {
@@ -153,26 +170,20 @@ impl DecayParam {
 
 /// Super-SOM core type.
 #[allow(dead_code)]
-pub struct Som<N>
-where
-    N: Neighborhood,
-{
+pub struct Som {
     dims: usize,
     nrows: usize,
     ncols: usize,
-    weights: DataFrame<f64>,
-    distances_sq: DataFrame<f32>,
-    params: SomParams<N>,
+    weights: DataFrame,
+    distances_sq: DataFrame,
+    params: SomParams,
     epoch: u32,
 }
 
 #[allow(dead_code)]
-impl<N> Som<N>
-where
-    N: Neighborhood,
-{
+impl Som {
     /// Creates a new SOM or Super-SOM
-    pub fn new(dims: usize, nrows: usize, ncols: usize, params: SomParams<N>) -> Self {
+    pub fn new(dims: usize, nrows: usize, ncols: usize, params: SomParams) -> Self {
         let mut som = Som {
             dims,
             nrows,
@@ -187,7 +198,7 @@ where
     }
 
     /// Returns a reference to the SOM's parameters.
-    pub fn params(&self) -> &SomParams<N> {
+    pub fn params(&self) -> &SomParams {
         &self.params
     }
 
@@ -203,7 +214,7 @@ where
     }
 
     /// Pre-calculates the unit-to-unit distance matrix.
-    fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame<f32> {
+    fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame {
         let metric = SqEuclideanMetric();
         let mut df = DataFrame::filled(nrows * ncols, &vec![""; nrows * ncols], 0.0);
         for r1 in 0..nrows {
@@ -215,8 +226,7 @@ where
                         df.set(
                             idx1,
                             idx2,
-                            metric.distance(&[r1 as f64, c1 as f64], &[r2 as f64, c2 as f64])
-                                as f32,
+                            metric.distance(&[r1 as f64, c1 as f64], &[r2 as f64, c2 as f64]),
                         );
                     }
                 }
@@ -233,7 +243,7 @@ where
         (row * self.ncols as i32 + col) as usize
     }
     /// Returns a reference to the units weights data frame.
-    pub fn weights(&self) -> &DataFrame<f64> {
+    pub fn weights(&self) -> &DataFrame {
         &self.weights
     }
     /// Returns a reference to the weights of the unit at (row, col).
@@ -254,7 +264,7 @@ where
     }
 
     /// Trains the SOM for one epoch. Updates learning parameters
-    pub fn epoch(&mut self, samples: &DataFrame<f64>, count: Option<usize>) -> Option<()> {
+    pub fn epoch(&mut self, samples: &DataFrame, count: Option<usize>) -> Option<()> {
         if self.epoch >= self.params.epochs {
             return None;
         }
@@ -263,7 +273,7 @@ where
         let mut indices: Vec<_> = (0..samples.nrows()).collect();
         rng.shuffle(&mut indices);
 
-        let cnt = cmp::min(count.unwrap_or(samples.nrows()), samples.nrows());
+        let cnt = cmp::min(count.unwrap_or_else(|| samples.nrows()), samples.nrows());
 
         for idx in indices.iter().take(cnt) {
             let sample = samples.get_row(*idx);
@@ -327,9 +337,12 @@ where
                 if dist_sq <= search_rad_sq {
                     let weight = neigh.weight(radius_inf_sq * dist_sq);
                     for i in 0..self.dims {
-                        let value = *self.weights.get(index, i);
-                        self.weights
-                            .set(index, i, value + weight * alpha * (sample[i] - value))
+                        let smp = sample[i];
+                        if !smp.is_nan() {
+                            let value = *self.weights.get(index, i);
+                            self.weights
+                                .set(index, i, value + weight * alpha * (smp - value));
+                        }
                     }
                 }
             }
@@ -339,7 +352,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::calc::neighborhood::GaussNeighborhood;
+    use crate::calc::neighborhood::Neighborhood;
     use crate::data::DataFrame;
     use crate::map::som::{DecayParam, Som, SomParams};
     use rand::Rng;
@@ -348,7 +361,7 @@ mod test {
     fn create_som() {
         let params = SomParams::simple(
             100,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
@@ -361,7 +374,7 @@ mod test {
     fn create_large_som() {
         let params = SomParams::simple(
             100,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
@@ -378,7 +391,7 @@ mod test {
     fn train_step() {
         let params = SomParams::simple(
             100,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
@@ -392,7 +405,7 @@ mod test {
         let cols = ["A", "B", "C", "D", "E"];
         let params = SomParams::simple(
             10,
-            GaussNeighborhood(),
+            Neighborhood::Gauss,
             DecayParam::lin(0.2, 0.01),
             DecayParam::lin(5.0, 0.5),
             DecayParam::exp(0.2, 0.001),
@@ -400,7 +413,7 @@ mod test {
         let mut som = Som::new(cols.len(), 16, 16, params);
 
         let mut rng = rand::thread_rng();
-        let mut data = DataFrame::<f64>::empty(&cols);
+        let mut data = DataFrame::empty(&cols);
 
         for _i in 0..100 {
             data.push_row(&[

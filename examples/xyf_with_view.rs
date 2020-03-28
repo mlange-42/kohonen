@@ -2,7 +2,7 @@ use easy_graph::color::style::{BLACK, BLUE, WHITE};
 use easy_graph::ui::drawing::IntoDrawingArea;
 use easy_graph::ui::element::{Circle, PathElement};
 use easy_graph::ui::window::WindowBuilder;
-use kohonen::calc::neighborhood::GaussNeighborhood;
+use kohonen::calc::neighborhood::Neighborhood;
 use kohonen::data::DataFrame;
 use kohonen::map::som::{DecayParam, Layer, Som, SomParams};
 use kohonen::ui::LayerView;
@@ -18,7 +18,7 @@ fn run_xyf(graphics: bool) {
     let cols = ["A", "B", "C", "D"];
     let params = SomParams::xyf(
         1000,
-        GaussNeighborhood(),
+        Neighborhood::Gauss,
         DecayParam::lin(0.1, 0.01),
         DecayParam::lin(10.0, 0.6),
         DecayParam::exp(0.25, 0.0001),
@@ -27,7 +27,7 @@ fn run_xyf(graphics: bool) {
     let mut som = Som::new(cols.len(), 12, 24, params);
 
     let mut rng = rand::thread_rng();
-    let mut data = DataFrame::<f64>::empty(&cols);
+    let mut data = DataFrame::empty(&cols);
 
     let norm = rand::distributions::Normal::new(0.0, 0.06);
     for _i in 0..5000 {
@@ -55,7 +55,7 @@ fn run_xyf(graphics: bool) {
             .with_dimensions(800, 500)
             .with_fps_skip(2.0)
             .build();
-        Some(LayerView::new(win, &[], None))
+        Some(LayerView::new(win, &[], &cols, None))
     } else {
         None
     };

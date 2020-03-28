@@ -16,7 +16,7 @@ const TANIMOTO: TanimotoMetric = TanimotoMetric();
 /// Dimensions with NA values are ignored.
 /// # Returns
 /// (index, distance)
-pub fn nearest_neighbor(from: &[f64], to: &DataFrame<f64>) -> (usize, f64) {
+pub fn nearest_neighbor(from: &[f64], to: &DataFrame) -> (usize, f64) {
     assert_eq!(from.len(), to.ncols());
 
     let mut min_dist = std::f64::MAX;
@@ -35,7 +35,7 @@ pub fn nearest_neighbor(from: &[f64], to: &DataFrame<f64>) -> (usize, f64) {
 /// Dimensions with NA values are ignored.
 /// # Returns
 /// (index, distance)
-pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame<f64>) -> (usize, f64) {
+pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame) -> (usize, f64) {
     assert_eq!(from.len(), to.ncols());
 
     let mut min_dist = std::f64::MAX;
@@ -54,7 +54,7 @@ pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame<f64>) -> (usize, f
 /// Dimensions with NA values are ignored.
 /// # Returns
 /// (index, weighted-distance)
-pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame<f64>, layers: &[Layer]) -> (usize, f64) {
+pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame, layers: &[Layer]) -> (usize, f64) {
     assert_eq!(from.len(), to.ncols());
 
     let mut min_dist = std::f64::MAX;
@@ -84,8 +84,8 @@ pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame<f64>, layers: &[Layer])
 /// # Returns
 /// Vec(index, weighted-distance)
 pub fn nearest_neighbors(
-    from: &DataFrame<f64>,
-    to: &DataFrame<f64>,
+    from: &DataFrame,
+    to: &DataFrame,
     mut result: Vec<(usize, f64)>,
 ) -> Vec<(usize, f64)> {
     assert_eq!(from.ncols(), to.ncols());
@@ -182,7 +182,7 @@ mod test {
     fn xyf_nn() {
         let mut rng = rand::thread_rng();
         let from = [0.0, 0.0, 0.0, 0.0, 0.0];
-        let mut to = DataFrame::<f64>::empty(&["A", "B", "C", "D", "E"]);
+        let mut to = DataFrame::empty(&["A", "B", "C", "D", "E"]);
 
         for _i in 0..10 {
             to.push_row(&[
@@ -202,7 +202,7 @@ mod test {
     fn nn_simple() {
         let mut rng = rand::thread_rng();
         let from = [0.0, 0.0, 0.0];
-        let mut to = DataFrame::<f64>::empty(&["A", "B", "C"]);
+        let mut to = DataFrame::empty(&["A", "B", "C"]);
 
         for _i in 0..100 {
             to.push_row(&[
@@ -220,8 +220,8 @@ mod test {
     #[test]
     fn nns_simple() {
         let mut rng = rand::thread_rng();
-        let mut from = DataFrame::<f64>::empty(&["A", "B", "C"]);
-        let mut to = DataFrame::<f64>::empty(&["A", "B", "C"]);
+        let mut from = DataFrame::empty(&["A", "B", "C"]);
+        let mut to = DataFrame::empty(&["A", "B", "C"]);
 
         for _i in 0..100 {
             from.push_row(&[

@@ -1,5 +1,5 @@
 use easy_graph::ui::window::WindowBuilder;
-use kohonen::calc::neighborhood::GaussNeighborhood;
+use kohonen::calc::neighborhood::Neighborhood;
 use kohonen::map::som::{DecayParam, Layer, Som, SomParams};
 use kohonen::ui::LayerView;
 
@@ -7,7 +7,7 @@ fn main() {
     let dim = 5;
     let params = SomParams::xyf(
         1000,
-        GaussNeighborhood(),
+        Neighborhood::Gauss,
         DecayParam::lin(0.1, 0.01),
         DecayParam::lin(10.0, 0.6),
         DecayParam::exp(0.25, 0.0001),
@@ -20,7 +20,7 @@ fn main() {
         .with_fps_skip(5.0)
         .build();
 
-    let mut view = LayerView::new(win, &[0], None);
+    let mut view = LayerView::new(win, &[0], &["A", "B", "C", "D", "E"], None);
 
     while view.is_open() {
         view.draw(&som);
