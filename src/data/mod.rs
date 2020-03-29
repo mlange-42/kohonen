@@ -1,8 +1,10 @@
 //! Data structures like tables.
 
+use serde::{Deserialize, Serialize};
 use std::slice::{Chunks, ChunksMut};
 
 /// A data frame with all columns of the same Float type.
+#[derive(Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct DataFrame {
     ncols: usize,

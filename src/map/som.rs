@@ -6,9 +6,11 @@ use crate::calc::nn;
 use crate::data::DataFrame;
 use crate::ParseEnumError;
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::cmp;
 
 /// SOM training parameters
+#[derive(Serialize, Deserialize)]
 pub struct SomParams {
     epochs: u32,
     //metric: M,
@@ -81,7 +83,7 @@ impl SomParams {
 }
 
 /// Layer definition for multi-layered SOMs.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Layer {
     ncols: usize,
     weight: f64,
@@ -119,7 +121,7 @@ impl Layer {
 }
 
 /// Decay functions for learing parameters.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DecayFunction {
     /// Linear decay
     Linear,
@@ -139,7 +141,7 @@ impl DecayFunction {
     }
 }
 /// Decay parameters for learing parameters.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecayParam {
     start: f64,
     end: f64,
@@ -186,15 +188,17 @@ impl DecayParam {
 }
 
 /// Super-SOM core type.
+#[derive(Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct Som {
     dims: usize,
     nrows: usize,
     ncols: usize,
     weights: DataFrame,
-    distances_sq: DataFrame,
     params: SomParams,
     epoch: u32,
+    #[serde(skip_serializing)]
+    distances_sq: DataFrame,
 }
 
 #[allow(dead_code)]

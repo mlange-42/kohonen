@@ -1,6 +1,7 @@
 //! Neighborhoods (i.e. kernels), for effect on nearby SOM-units.
 
 use crate::ParseEnumError;
+use serde::{Deserialize, Serialize};
 
 /// Neighborhoods.
 #[derive(Debug, Clone)]
@@ -22,7 +23,7 @@ impl Neighbors {
 }
 
 /// Neighborhoods.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Neighborhood {
     Gauss,
 }
