@@ -11,13 +11,15 @@ pub struct SqEuclideanMetric();
 impl Metric for SqEuclideanMetric {
     fn distance(&self, from: &[f64], to: &[f64]) -> f64 {
         assert_eq!(from.len(), to.len());
-        from.iter().zip(to).fold(0.0, |sum, (a, b)| {
+
+        let mut sum = 0.0;
+        for (a, b) in from.iter().zip(to) {
             if a.is_nan() || b.is_nan() {
-                sum
             } else {
-                sum + (*a - *b).powi(2)
+                sum += (*a - *b).powi(2);
             }
-        })
+        }
+        sum
     }
 }
 
@@ -26,16 +28,15 @@ pub struct EuclideanMetric();
 impl Metric for EuclideanMetric {
     fn distance(&self, from: &[f64], to: &[f64]) -> f64 {
         assert_eq!(from.len(), to.len());
-        from.iter()
-            .zip(to)
-            .fold(0.0, |sum, (a, b)| {
-                if a.is_nan() || b.is_nan() {
-                    sum
-                } else {
-                    sum + (*a - *b).powi(2)
-                }
-            })
-            .sqrt()
+
+        let mut sum = 0.0;
+        for (a, b) in from.iter().zip(to) {
+            if a.is_nan() || b.is_nan() {
+            } else {
+                sum += (*a - *b).powi(2);
+            }
+        }
+        sum.sqrt()
     }
 }
 
@@ -45,26 +46,24 @@ impl Metric for TanimotoMetric {
     fn distance(&self, from: &[f64], to: &[f64]) -> f64 {
         assert_eq!(from.len(), to.len());
         let mut counter = 0;
-        from.iter().zip(to).fold(0.0, |sum, (a, b)| {
+        let mut sum = 0.0;
+
+        for (a, b) in from.iter().zip(to) {
             if a.is_nan() || b.is_nan() {
-                sum
             } else {
                 counter += 1;
-                sum + if *a >= 0.5 {
+                if *a >= 0.5 {
                     if *b < 0.5 {
-                        1.0
-                    } else {
-                        0.0
+                        sum += 1.0
                     }
                 } else {
                     if *b >= 0.5 {
-                        1.0
-                    } else {
-                        0.0
+                        sum += 1.0
                     }
                 }
             }
-        }) / counter as f64
+        }
+        sum / counter as f64
     }
 }
 

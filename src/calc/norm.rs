@@ -139,10 +139,11 @@ pub fn normalize(
     (df, denorm)
 }
 
-/// De-normalize a data frame, with a [`LinearTransform`](struct.DeNorm.html) per column, as obtained from [`normalize`](fn.normalize.html).
+/// De-normalize a data frame, with a [`LinearTransform`](struct.LinearTransform.html) per column, as obtained from [`normalize`](fn.normalize.html).
 /// # Returns
 /// A de-normalized data frame
 pub fn denormalize(data: &DataFrame, denorm: &[LinearTransform]) -> DataFrame {
+    assert_eq!(data.ncols(), denorm.len());
     let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
     let mut df = DataFrame::empty(&cols);
     for row in data.iter_rows() {
@@ -157,9 +158,31 @@ pub fn denormalize(data: &DataFrame, denorm: &[LinearTransform]) -> DataFrame {
     df
 }
 
+/// De-normalize columns of a data frame, with a [`LinearTransform`](struct.LinearTransform.html) per column, as obtained from [`normalize`](fn.normalize.html).
+/// # Returns
+/// A de-normalized data frame
+pub fn denormalize_columns(
+    data: &DataFrame,
+    columns: &[usize],
+    denorm: &[LinearTransform],
+) -> DataFrame {
+    assert_eq!(columns.len(), denorm.len());
+    let cols: Vec<_> = columns.iter().map(|i| &data.names()[*i][..]).collect();
+    let mut df = DataFrame::empty(&cols);
+    for row in data.iter_rows() {
+        df.push_row_iter(
+            columns
+                .iter()
+                .zip(denorm)
+                .map(|(col, de)| de.transform(row[*col])),
+        );
+    }
+    df
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::calc::norm::{denormalize, normalize, Norm};
+    use crate::calc::norm::{denormalize, denormalize_columns, normalize, Norm};
     use crate::data::DataFrame;
     use rand::prelude::*;
     use statistical as stats;
@@ -199,6 +222,15 @@ mod tests {
         let df2 = denormalize(&df, &denorm);
 
         for (row1, row2) in data.iter_rows().zip(df2.iter_rows()) {
+            for (v1, v2) in row1.iter().zip(row2) {
+                assert!((v1 - v2).abs() < 0.00001);
+            }
+        }
+
+        let df3 = denormalize_columns(&df, &[0, 1], &denorm[0..2]);
+
+        assert_eq!(df3.ncols(), 2);
+        for (row1, row2) in data.iter_rows().zip(df3.iter_rows()) {
             for (v1, v2) in row1.iter().zip(row2) {
                 assert!((v1 - v2).abs() < 0.00001);
             }

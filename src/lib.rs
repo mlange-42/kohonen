@@ -9,10 +9,21 @@ pub mod ui;
 
 use core::fmt;
 
+/// Error type for failed parsing of `String`s to `enum`s.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseEnumError(String);
 
 impl fmt::Display for ParseEnumError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+/// Error type for wrong data type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DataTypeError(String);
+
+impl fmt::Display for DataTypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }

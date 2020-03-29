@@ -1,9 +1,29 @@
 //! Neighborhoods (i.e. kernels), for effect on nearby SOM-units.
 
 use crate::ParseEnumError;
+use serde::{Deserialize, Serialize};
 
 /// Neighborhoods.
 #[derive(Debug, Clone)]
+pub enum Neighbors {
+    Neighbors4,
+    Neighbors8,
+}
+impl Neighbors {
+    pub fn from_string(str: &str) -> Result<Neighbors, ParseEnumError> {
+        match str {
+            "4" | "n4" | "N4" | "Neighbors4" => Ok(Neighbors::Neighbors4),
+            "8" | "n8" | "N8" | "Neighbors8" => Ok(Neighbors::Neighbors8),
+            _ => Err(ParseEnumError(format!(
+                "Not a Neighbors: {}. Must be one of (n4|n8)",
+                str
+            ))),
+        }
+    }
+}
+
+/// Neighborhoods.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Neighborhood {
     Gauss,
 }
