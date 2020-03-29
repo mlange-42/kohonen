@@ -97,6 +97,7 @@ pub struct ProcessorBuilder {
     csv_options: CsvOptions,
 }
 impl ProcessorBuilder {
+    /// Creates a `ProcessorBuilder` for the given [`InputLayer`s](struct.InputLayer.html).
     pub fn new(layers: &[InputLayer]) -> Self {
         ProcessorBuilder {
             input_layers: layers.to_vec(),
@@ -106,14 +107,17 @@ impl ProcessorBuilder {
             },
         }
     }
+    /// Sets the delimiter for CSV files. Default ','.
     pub fn with_delimiter(mut self, delimiter: u8) -> Self {
         self.csv_options.delimiter = delimiter;
         self
     }
+    /// Sets the no-data value for CSV files. Default 'NA'.
     pub fn with_no_data(mut self, no_data: &str) -> Self {
         self.csv_options.no_data = no_data.to_string();
         self
     }
+    /// Builds a [`Processor`](struct.Processor.html) from the given data file.
     pub fn build_from_file(self, path: &str) -> Result<Processor, Box<dyn Error>> {
         let proc = Processor::new(self.input_layers, path, &self.csv_options)?;
         Ok(proc)
@@ -298,19 +302,6 @@ impl Processor {
         }
         let (data_norm, denorm) = normalize(&df, &norm, &scale);
 
-        /*
-        for row in df.iter_rows() {
-            println!("{:?}", row);
-        }
-        for row in data_norm.iter_rows() {
-            println!("{:?}", row);
-        }
-        println!("{:?}", cat_levels);
-        println!("{:?}", df.names());
-        println!("{:?}", norm);
-        println!("{:?}", denorm);
-        */
-
         Ok(Processor {
             input_layers,
             data: data_norm,
@@ -322,6 +313,7 @@ impl Processor {
         })
     }
 
+    /// Creates an SOM for the `Processor`'s layer definitions and data.
     pub fn create_som(
         &self,
         nrows: usize,

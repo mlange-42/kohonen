@@ -5,6 +5,7 @@ use crate::map::som::{DecayFunction, DecayParam};
 use crate::proc::InputLayer;
 use structopt::StructOpt;
 
+/// Raw command line arguments.
 #[derive(StructOpt)]
 #[structopt(name = "Super-SOM command line application")]
 pub struct Cli {
@@ -53,6 +54,7 @@ pub struct Cli {
     no_data: Option<String>,
 }
 
+/// Parsed command line arguments.
 #[derive(Debug)]
 pub struct CliParsed {
     pub file: String,
@@ -69,6 +71,7 @@ pub struct CliParsed {
 }
 
 impl CliParsed {
+    /// Parse arguments from a [`Cli`](struct.Cli.html).
     pub fn from_cli(mut cli: Cli) -> Self {
         CliParsed {
             file: cli.file.clone(),

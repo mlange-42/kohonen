@@ -9,6 +9,7 @@ pub mod ui;
 
 use core::fmt;
 
+/// Error type for failed parsing of `String`s to `enum`s.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseEnumError(String);
 
