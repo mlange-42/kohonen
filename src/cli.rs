@@ -28,7 +28,7 @@ pub struct Cli {
     /// Layer weights list
     #[structopt(short, long)]
     weights: Vec<f64>,
-    /// Are layers categorical list (0/1). Default 1.0
+    /// Are layers categorical list (0/1). Default 1.
     #[structopt(short, long)]
     categ: Vec<i32>,
     /// Normalizer per layer list (gauss, unit, none). Default gauss.
@@ -49,7 +49,7 @@ pub struct Cli {
     /// Disable GUI
     #[structopt(long = "--no-gui")]
     nogui: bool,
-    /// Disable GUI
+    /// Maximum GUI update frequency in frames per second. Default 2.0
     #[structopt(long = "--fps")]
     fps: Option<f64>,
     /// No-data value. Default 'NA'.
