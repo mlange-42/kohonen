@@ -22,7 +22,7 @@ fn main() {
         //InputLayer::cat_simple("species"),
     ];
 
-    let proc = ProcessorBuilder::new(&layers)
+    let proc = ProcessorBuilder::new(&layers, &vec![])
         .with_delimiter(b';')
         .with_no_data("-")
         .build_from_file("example_data/countries.csv")

@@ -1,6 +1,7 @@
 use easy_graph::ui::window::WindowBuilder;
 use kohonen::cli::{Cli, CliParsed};
-use kohonen::proc::ProcessorBuilder;
+use kohonen::map::som::Som;
+use kohonen::proc::{Processor, ProcessorBuilder};
 use kohonen::ui::LayerView;
 use std::time::Duration;
 use structopt::StructOpt;
@@ -10,7 +11,7 @@ fn main() {
     let parsed = CliParsed::from_cli(args);
     println!("{:#?}", parsed);
 
-    let proc = ProcessorBuilder::new(&parsed.layers)
+    let proc = ProcessorBuilder::new(&parsed.layers, &parsed.preserve)
         .with_delimiter(b';')
         .with_no_data(&parsed.no_data)
         .build_from_file(&parsed.file)
@@ -44,6 +45,8 @@ fn main() {
         None
     };
 
+    let mut done = false;
+
     if let Some(views) = &mut viewers {
         while views.iter().fold(false, |a, v| a || v.is_open()) {
             let res = som.epoch(&proc.data(), None);
@@ -51,15 +54,25 @@ fn main() {
                 view.draw(&som);
             }
             if res.is_none() {
+                if !done {
+                    write_output(&parsed, &proc, &som);
+                    done = true;
+                }
                 std::thread::sleep(Duration::from_millis(40));
             }
         }
     } else {
         while let Some(()) = som.epoch(&proc.data(), None) {}
+        write_output(&parsed, &proc, &som);
     }
+}
 
-    if let Some(out) = parsed.output {
-        let units_file = out + "-units.csv";
+fn write_output(parsed: &CliParsed, proc: &Processor, som: &Som) {
+    if let Some(out) = &parsed.output {
+        let units_file = format!("{}-units.csv", &out);
         proc.write_som_units(&som, &units_file, true).unwrap();
+        let data_file = format!("{}-out.csv", &out);
+        proc.write_data_nearest(&som, proc.data(), &data_file)
+            .unwrap();
     }
 }

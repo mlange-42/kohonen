@@ -1,6 +1,7 @@
 //! Pre- and post-processing of SOM training data, SOM creation.
 
 use crate::calc::neighborhood::Neighborhood;
+use crate::calc::nn::nearest_neighbor_xyf;
 use crate::calc::norm::{denormalize_columns, normalize, LinearTransform, Norm};
 use crate::data::DataFrame;
 use crate::map::som::{DecayParam, Layer, Som, SomParams};
@@ -95,13 +96,15 @@ pub struct CsvOptions {
 
 pub struct ProcessorBuilder {
     input_layers: Vec<InputLayer>,
+    preserve: Vec<String>,
     csv_options: CsvOptions,
 }
 impl ProcessorBuilder {
     /// Creates a `ProcessorBuilder` for the given [`InputLayer`s](struct.InputLayer.html).
-    pub fn new(layers: &[InputLayer]) -> Self {
+    pub fn new(layers: &[InputLayer], preserve: &Vec<String>) -> Self {
         ProcessorBuilder {
             input_layers: layers.to_vec(),
+            preserve: preserve.clone(),
             csv_options: CsvOptions {
                 delimiter: b',',
                 no_data: "NA".to_string(),
@@ -120,7 +123,7 @@ impl ProcessorBuilder {
     }
     /// Builds a [`Processor`](struct.Processor.html) from the given data file.
     pub fn build_from_file(self, path: &str) -> Result<Processor, Box<dyn Error>> {
-        let proc = Processor::new(self.input_layers, path, &self.csv_options)?;
+        let proc = Processor::new(self.input_layers, self.preserve, path, &self.csv_options)?;
         Ok(proc)
     }
 }
@@ -130,6 +133,8 @@ pub struct Processor {
     input_layers: Vec<InputLayer>,
     data: DataFrame,
     layers: Vec<Layer>,
+    preserve_columns: Vec<String>,
+    preserved: Vec<Vec<String>>,
     norm: Vec<Norm>,
     denorm: Vec<LinearTransform>,
     scale: Vec<f64>,
@@ -139,10 +144,11 @@ pub struct Processor {
 impl Processor {
     fn new(
         input_layers: Vec<InputLayer>,
+        preserve: Vec<String>,
         path: &str,
         csv_options: &CsvOptions,
     ) -> Result<Self, Box<dyn Error>> {
-        Self::read_file(input_layers, path, csv_options)
+        Self::read_file(input_layers, preserve, path, csv_options)
     }
 
     /// The normalized data.
@@ -167,6 +173,7 @@ impl Processor {
 
     fn read_file(
         mut input_layers: Vec<InputLayer>,
+        preserve: Vec<String>,
         path: &str,
         csv_options: &CsvOptions,
     ) -> Result<Processor, Box<dyn Error>> {
@@ -185,7 +192,12 @@ impl Processor {
             lay.indices = Some(
                 lay.names
                     .iter()
-                    .map(|n| header.iter().position(|n2| n2 == n).unwrap())
+                    .map(|n| {
+                        header
+                            .iter()
+                            .position(|n2| n2 == n)
+                            .expect(&format!("Volumn '{}' not found.", n))
+                    })
                     .collect(),
             );
             lay.num_columns = Some(lay.indices.as_ref().unwrap().len());
@@ -248,6 +260,18 @@ impl Processor {
             }
         }
 
+        // get id column index
+        let id_indices: Vec<_> = preserve
+            .iter()
+            .map(|col| {
+                header
+                    .iter()
+                    .position(|n2| *n2 == col)
+                    .expect(&format!("Preserved column '{}' not found.", col))
+            })
+            .collect();
+        let mut id_values = vec![Vec::<String>::new(); id_indices.len()];
+
         // transform to SOM training data format
         let mut df = DataFrame::empty(&colnames.iter().map(|x| &**x).collect::<Vec<_>>());
         let mut row = vec![0.0; colnames.len()];
@@ -257,6 +281,10 @@ impl Processor {
             let rec = record?;
             for i in 0..row.len() {
                 row[i] = 0.0;
+            }
+            for (idx, col_idx) in id_indices.iter().enumerate() {
+                let id = rec.get(*col_idx).unwrap();
+                id_values[idx].push(id.to_string());
             }
             let mut start = 0;
             for (layer_index, (inp, lay)) in input_layers.iter().zip(layers.iter()).enumerate() {
@@ -306,6 +334,8 @@ impl Processor {
         Ok(Processor {
             input_layers,
             data: data_norm,
+            preserve_columns: preserve.clone(),
+            preserved: id_values,
             layers,
             norm,
             denorm,
@@ -343,6 +373,7 @@ impl Processor {
     pub fn to_class(
         &self,
         som: &Som,
+        data: &DataFrame,
         layer_index: usize,
     ) -> Result<(String, Vec<String>), DataTypeError> {
         if !self.input_layers[layer_index].is_class {
@@ -360,8 +391,7 @@ impl Processor {
             .collect();
         let name = self.data.names()[start_col].splitn(2, ':').nth(0).unwrap();
 
-        let result: Vec<_> = som
-            .weights()
+        let result: Vec<_> = data
             .iter_rows()
             .map(|row| {
                 let mut v_max = std::f64::MIN;
@@ -384,18 +414,20 @@ impl Processor {
     pub fn to_denormalized(
         &self,
         som: &Som,
+        data: &DataFrame,
         layer_index: usize,
     ) -> Result<DataFrame, DataTypeError> {
         let layer = &self.layers[layer_index];
         let start_col = som.params().start_columns()[layer_index];
         let range = start_col..(start_col + layer.ncols());
         Ok(denormalize_columns(
-            som.weights(),
+            data,
             &range.collect::<Vec<_>>(),
             &self.denorm()[start_col..(start_col + layer.ncols())],
         ))
     }
 
+    /// Writes SOM units to CSV file.
     pub fn write_som_units(
         &self,
         som: &Som,
@@ -410,12 +442,12 @@ impl Processor {
         let offset = names.len();
         for (idx, layer) in som.params().layers().iter().enumerate() {
             if class_values || !layer.categorical() {
-                let result = self.to_denormalized(&som, idx).unwrap();
+                let result = self.to_denormalized(&som, som.weights(), idx).unwrap();
                 names.extend_from_slice(&result.names());
                 denorm[idx] = Some(result);
             }
             if layer.categorical() {
-                let (name, cl) = self.to_class(&som, idx).unwrap();
+                let (name, cl) = self.to_class(&som, som.weights(), idx).unwrap();
                 classes[idx] = Some(cl);
                 names.push(name);
             }
@@ -463,6 +495,89 @@ impl Processor {
 
         Ok(())
     }
+
+    pub fn nearest_unit(&self, som: &Som, data: &DataFrame) -> Vec<(usize, f64)> {
+        assert_eq!(som.weights().names(), data.names());
+
+        data.iter_rows()
+            .map(|row| nearest_neighbor_xyf(row, som.weights(), self.layers()))
+            .collect()
+    }
+
+    pub fn write_data_nearest(
+        &self,
+        som: &Som,
+        data: &DataFrame,
+        path: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut classes: Vec<Option<Vec<String>>> = vec![None; self.layers.len()];
+        let mut denorm: Vec<Option<DataFrame>> = (0..self.layers.len()).map(|_| None).collect();
+
+        let nearest = self.nearest_unit(&som, data);
+
+        let mut names: Vec<String> = self.preserve_columns.clone();
+        let offset_preserved = names.len();
+
+        for (idx, layer) in som.params().layers().iter().enumerate() {
+            if layer.categorical() {
+                let (name, cl) = self.to_class(&som, data, idx).unwrap();
+                classes[idx] = Some(cl);
+                names.push(name);
+            } else {
+                let result = self.to_denormalized(&som, data, idx).unwrap();
+                names.extend_from_slice(&result.names());
+                denorm[idx] = Some(result);
+            }
+        }
+
+        let offset = names.len();
+        names.extend_from_slice(&[
+            "som_index".to_string(),
+            "som_row".to_string(),
+            "som_col".to_string(),
+        ]);
+
+        let mut writer = WriterBuilder::new()
+            .delimiter(self.csv_options.delimiter)
+            .from_path(path)?;
+
+        let mut row = vec!["".to_string(); names.len()];
+        writer.write_record(&names)?;
+        for index in 0..data.nrows() {
+            for (idx, vec) in self.preserved.iter().enumerate() {
+                row[idx] = vec[index].clone();
+            }
+            for (idx, (layer, start_col)) in som
+                .params()
+                .layers()
+                .iter()
+                .zip(som.params().start_columns())
+                .enumerate()
+            {
+                if layer.categorical() {
+                    let cls = classes[idx].as_ref().unwrap();
+                    let v = &cls[index];
+                    row[*start_col + offset_preserved] = v.clone();
+                } else {
+                    let df = denorm[idx].as_ref().unwrap();
+                    let df_row = df.get_row(index);
+                    for i in 0..df_row.len() {
+                        let v = df_row[i];
+                        row[*start_col + offset_preserved + i] = v.to_string();
+                    }
+                }
+            }
+            let (near, _dist) = nearest[index];
+            let (r, c) = som.to_row_col(near);
+            row[offset] = near.to_string();
+            row[offset + 1] = r.to_string();
+            row[offset + 2] = c.to_string();
+
+            writer.write_record(&row)?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -472,6 +587,39 @@ mod test {
     use crate::map::som::DecayParam;
     use crate::proc::{InputLayer, ProcessorBuilder};
 
+    #[test]
+    fn nearest_unit() {
+        let layers = vec![
+            InputLayer::cont_simple(&[
+                "sepal_length",
+                "sepal_width",
+                "petal_length",
+                "petal_width",
+            ]),
+            InputLayer::cat_simple("species"),
+        ];
+
+        let proc = ProcessorBuilder::new(&layers, &vec![])
+            .with_delimiter(b';')
+            .build_from_file("example_data/iris.csv")
+            .unwrap();
+
+        let som = proc.create_som(
+            16,
+            20,
+            1000,
+            Neighborhood::Gauss,
+            DecayParam::lin(0.2, 0.01),
+            DecayParam::lin(8.0, 0.5),
+            DecayParam::exp(0.2, 0.001),
+        );
+
+        let nearest = proc.nearest_unit(&som, proc.data());
+
+        assert_eq!(nearest.len(), proc.data.nrows());
+
+        //let result = proc.write_data_nearest(&som, proc.data(), "test.csv");
+    }
     #[test]
     fn write_som() {
         let layers = vec![
@@ -484,7 +632,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers)
+        let proc = ProcessorBuilder::new(&layers, &vec![])
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -513,7 +661,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers)
+        let proc = ProcessorBuilder::new(&layers, &vec![])
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -527,7 +675,7 @@ mod test {
             DecayParam::lin(8.0, 0.5),
             DecayParam::exp(0.2, 0.001),
         );
-        let (name, classes) = proc.to_class(&som, 1).unwrap();
+        let (name, classes) = proc.to_class(&som, som.weights(), 1).unwrap();
         assert_eq!(classes.len(), som.weights().nrows());
         assert_eq!(&name[..], "species");
     }
@@ -544,7 +692,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers)
+        let proc = ProcessorBuilder::new(&layers, &vec![])
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -558,7 +706,7 @@ mod test {
             DecayParam::lin(8.0, 0.5),
             DecayParam::exp(0.2, 0.001),
         );
-        let denorm = proc.to_denormalized(&som, 0).unwrap();
+        let denorm = proc.to_denormalized(&som, som.weights(), 0).unwrap();
         assert_eq!(denorm.nrows(), som.weights().nrows());
         assert_eq!(denorm.ncols(), proc.layers()[0].ncols());
     }
@@ -575,7 +723,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers)
+        let proc = ProcessorBuilder::new(&layers, &vec![])
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();

@@ -22,6 +22,9 @@ pub struct Cli {
     /// Layer columns. Put layers in quotes: `"X1 X2 X3" "Y1"`
     #[structopt(short, long)]
     layers: Vec<String>,
+    /// Columns to be preserved
+    #[structopt(long)]
+    pub preserve: Vec<String>,
     /// Layer weights list
     #[structopt(short, long)]
     weights: Vec<f64>,
@@ -64,6 +67,7 @@ pub struct CliParsed {
     pub size: (usize, usize),
     pub episodes: u32,
     pub layers: Vec<InputLayer>,
+    pub preserve: Vec<String>,
     pub alpha: DecayParam,
     pub radius: DecayParam,
     pub decay: DecayParam,
@@ -82,6 +86,7 @@ impl CliParsed {
             size: (cli.size[0], cli.size[1]),
             episodes: cli.episodes,
             layers: Self::parse_layers(&mut cli),
+            preserve: cli.preserve,
             alpha: Self::parse_decay(cli.alpha, "alpha"),
             radius: Self::parse_decay(cli.radius, "radius"),
             decay: Self::parse_decay(cli.decay, "decay"),
