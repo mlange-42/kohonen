@@ -64,12 +64,15 @@ pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame, layers: &[Layer]) -> (
         let mut dist = 0.0;
         for layer in layers {
             let end = start + layer.ncols();
-            dist += layer.weight()
-                * if layer.categorical() {
-                    TANIMOTO.distance(&from[start..end], &row_to[start..end])
-                } else {
-                    EUCLIDEAN.distance(&from[start..end], &row_to[start..end])
-                };
+            let d = if layer.categorical() {
+                TANIMOTO.distance(&from[start..end], &row_to[start..end])
+            } else {
+                EUCLIDEAN.distance(&from[start..end], &row_to[start..end])
+            };
+            if !d.is_nan() {
+                dist += d * layer.weight();
+            }
+
             start = end;
         }
         if dist < min_dist {

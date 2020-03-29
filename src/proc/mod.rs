@@ -391,19 +391,28 @@ impl Processor {
             .collect();
         let name = self.data.names()[start_col].splitn(2, ':').nth(0).unwrap();
 
+        let no_data = &self.csv_options.no_data;
         let result: Vec<_> = data
             .iter_rows()
             .map(|row| {
                 let mut v_max = std::f64::MIN;
                 let mut idx_max = 0;
+                let mut any = false;
                 for i in start_col..(start_col + layer.ncols()) {
                     let v = row[i];
-                    if v > v_max {
-                        v_max = v;
-                        idx_max = i;
+                    if !v.is_nan() {
+                        if v > v_max {
+                            v_max = v;
+                            idx_max = i;
+                        }
+                        any = true;
                     }
                 }
-                classes[idx_max - start_col].to_string()
+                if any {
+                    classes[idx_max - start_col].to_string()
+                } else {
+                    no_data.clone()
+                }
             })
             .collect();
 
@@ -537,6 +546,8 @@ impl Processor {
             "som_col".to_string(),
         ]);
 
+        let no_data = &self.csv_options.no_data;
+
         let mut writer = WriterBuilder::new()
             .delimiter(self.csv_options.delimiter)
             .from_path(path)?;
@@ -563,7 +574,11 @@ impl Processor {
                     let df_row = df.get_row(index);
                     for i in 0..df_row.len() {
                         let v = df_row[i];
-                        row[*start_col + offset_preserved + i] = v.to_string();
+                        row[*start_col + offset_preserved + i] = if v.is_nan() {
+                            no_data.clone()
+                        } else {
+                            v.to_string()
+                        };
                     }
                 }
             }
