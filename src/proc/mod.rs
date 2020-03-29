@@ -1,10 +1,11 @@
 //! Pre- and post-processing of SOM training data, SOM creation.
 
 use crate::calc::neighborhood::Neighborhood;
-use crate::calc::norm::{normalize, LinearTransform, Norm};
+use crate::calc::norm::{denormalize_columns, normalize, LinearTransform, Norm};
 use crate::data::DataFrame;
 use crate::map::som::{DecayParam, Layer, Som, SomParams};
-use csv::{ReaderBuilder, StringRecord};
+use crate::DataTypeError;
+use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use std::collections::HashSet;
 use std::error::Error;
 
@@ -333,7 +334,134 @@ impl Processor {
             self.layers.to_vec(),
         );
 
-        Som::new(self.data.ncols(), nrows, ncols, params)
+        Som::new(&self.data.names_ref_vec(), nrows, ncols, params)
+    }
+
+    /// Transforms a categorical / class layer to a vector of class labels.
+    ///
+    /// Returns an error if the layer is not categorical.
+    pub fn to_class(
+        &self,
+        som: &Som,
+        layer_index: usize,
+    ) -> Result<(String, Vec<String>), DataTypeError> {
+        if !self.input_layers[layer_index].is_class {
+            return Err(DataTypeError(format!(
+                "Classes can be derived only for categorical layers, but layer {} is not.",
+                layer_index
+            )));
+        }
+        let layer = &self.layers[layer_index];
+        let start_col = som.params().start_columns()[layer_index];
+
+        let classes: Vec<_> = som.weights().names()[start_col..(start_col + layer.ncols())]
+            .iter()
+            .map(|n| n.splitn(2, ':').nth(1).unwrap())
+            .collect();
+        let name = self.data.names()[start_col].splitn(2, ':').nth(0).unwrap();
+
+        let result: Vec<_> = som
+            .weights()
+            .iter_rows()
+            .map(|row| {
+                let mut v_max = std::f64::MIN;
+                let mut idx_max = 0;
+                for i in start_col..(start_col + layer.ncols()) {
+                    let v = row[i];
+                    if v > v_max {
+                        v_max = v;
+                        idx_max = i;
+                    }
+                }
+                classes[idx_max - start_col].to_string()
+            })
+            .collect();
+
+        Ok((name.to_string(), result))
+    }
+
+    /// De-normalizes a SOM layer.
+    pub fn to_denormalized(
+        &self,
+        som: &Som,
+        layer_index: usize,
+    ) -> Result<DataFrame, DataTypeError> {
+        let layer = &self.layers[layer_index];
+        let start_col = som.params().start_columns()[layer_index];
+        let range = start_col..(start_col + layer.ncols());
+        Ok(denormalize_columns(
+            som.weights(),
+            &range.collect::<Vec<_>>(),
+            &self.denorm()[start_col..(start_col + layer.ncols())],
+        ))
+    }
+
+    pub fn write_som_units(
+        &self,
+        som: &Som,
+        path: &str,
+        class_values: bool,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut classes: Vec<Option<Vec<String>>> = vec![None; self.layers.len()];
+        let mut denorm: Vec<Option<DataFrame>> = (0..self.layers.len()).map(|_| None).collect();
+
+        let mut names: Vec<String> =
+            vec!["index".to_string(), "row".to_string(), "col".to_string()];
+        let offset = names.len();
+        for (idx, layer) in som.params().layers().iter().enumerate() {
+            if class_values || !layer.categorical() {
+                let result = self.to_denormalized(&som, idx).unwrap();
+                names.extend_from_slice(&result.names());
+                denorm[idx] = Some(result);
+            }
+            if layer.categorical() {
+                let (name, cl) = self.to_class(&som, idx).unwrap();
+                classes[idx] = Some(cl);
+                names.push(name);
+            }
+        }
+
+        let mut writer = WriterBuilder::new()
+            .delimiter(self.csv_options.delimiter)
+            .from_path(path)?;
+
+        let mut row = vec!["".to_string(); names.len()];
+        writer.write_record(&names)?;
+        for index in 0..som.weights().nrows() {
+            let (r, c) = som.to_row_col(index);
+            row[0] = index.to_string();
+            row[1] = r.to_string();
+            row[2] = c.to_string();
+
+            for (idx, (layer, start_col)) in som
+                .params()
+                .layers()
+                .iter()
+                .zip(som.params().start_columns())
+                .enumerate()
+            {
+                let mut offset_2 = 0;
+                if class_values || !layer.categorical() {
+                    let df = denorm[idx].as_ref().unwrap();
+                    let df_row = df.get_row(index);
+                    for i in 0..df_row.len() {
+                        let v = df_row[i];
+                        row[offset + *start_col + i] = v.to_string();
+                    }
+                    offset_2 += df_row.len()
+                }
+
+                if layer.categorical() {
+                    let cls = classes[idx].as_ref().unwrap();
+                    let v = &cls[index];
+                    row[offset + offset_2 + *start_col] = v.clone();
+                }
+            }
+
+            writer.write_record(&row)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -343,6 +471,97 @@ mod test {
     use crate::calc::norm::Norm;
     use crate::map::som::DecayParam;
     use crate::proc::{InputLayer, ProcessorBuilder};
+
+    #[test]
+    fn write_som() {
+        let layers = vec![
+            InputLayer::cont_simple(&[
+                "sepal_length",
+                "sepal_width",
+                "petal_length",
+                "petal_width",
+            ]),
+            InputLayer::cat_simple("species"),
+        ];
+
+        let proc = ProcessorBuilder::new(&layers)
+            .with_delimiter(b';')
+            .build_from_file("example_data/iris.csv")
+            .unwrap();
+
+        let _som = proc.create_som(
+            16,
+            20,
+            1000,
+            Neighborhood::Gauss,
+            DecayParam::lin(0.2, 0.01),
+            DecayParam::lin(8.0, 0.5),
+            DecayParam::exp(0.2, 0.001),
+        );
+
+        //let result = proc.write_som_units(&som, "test.csv", false);
+    }
+    #[test]
+    fn layer_to_class() {
+        let layers = vec![
+            InputLayer::cont_simple(&[
+                "sepal_length",
+                "sepal_width",
+                "petal_length",
+                "petal_width",
+            ]),
+            InputLayer::cat_simple("species"),
+        ];
+
+        let proc = ProcessorBuilder::new(&layers)
+            .with_delimiter(b';')
+            .build_from_file("example_data/iris.csv")
+            .unwrap();
+
+        let som = proc.create_som(
+            16,
+            20,
+            1000,
+            Neighborhood::Gauss,
+            DecayParam::lin(0.2, 0.01),
+            DecayParam::lin(8.0, 0.5),
+            DecayParam::exp(0.2, 0.001),
+        );
+        let (name, classes) = proc.to_class(&som, 1).unwrap();
+        assert_eq!(classes.len(), som.weights().nrows());
+        assert_eq!(&name[..], "species");
+    }
+
+    #[test]
+    fn denormalize_layer() {
+        let layers = vec![
+            InputLayer::cont_simple(&[
+                "sepal_length",
+                "sepal_width",
+                "petal_length",
+                "petal_width",
+            ]),
+            InputLayer::cat_simple("species"),
+        ];
+
+        let proc = ProcessorBuilder::new(&layers)
+            .with_delimiter(b';')
+            .build_from_file("example_data/iris.csv")
+            .unwrap();
+
+        let som = proc.create_som(
+            16,
+            20,
+            1000,
+            Neighborhood::Gauss,
+            DecayParam::lin(0.2, 0.01),
+            DecayParam::lin(8.0, 0.5),
+            DecayParam::exp(0.2, 0.001),
+        );
+        let denorm = proc.to_denormalized(&som, 0).unwrap();
+        assert_eq!(denorm.nrows(), som.weights().nrows());
+        assert_eq!(denorm.ncols(), proc.layers()[0].ncols());
+    }
 
     #[test]
     fn create_proc() {
@@ -387,17 +606,5 @@ mod test {
             ]
         );
         assert_eq!(som.weights().ncols(), proc.data().ncols());
-        /*
-        let win = WindowBuilder::new()
-            .with_dimensions(800, 600)
-            .with_fps_skip(5.0)
-            .build();
-
-        let mut view = LayerView::new(win, &[], None);
-
-        while view.is_open() {
-            som.epoch(proc.data(), None);
-            view.draw(&som);
-        }*/
     }
 }

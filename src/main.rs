@@ -57,4 +57,9 @@ fn main() {
     } else {
         while let Some(()) = som.epoch(&proc.data(), None) {}
     }
+
+    if let Some(out) = parsed.output {
+        let units_file = out + "-units.csv";
+        proc.write_som_units(&som, &units_file, true).unwrap();
+    }
 }

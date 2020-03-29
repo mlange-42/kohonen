@@ -17,6 +17,7 @@ pub struct SomParams {
     radius: DecayParam,
     decay: DecayParam,
     layers: Vec<Layer>,
+    start_columns: Vec<usize>,
 }
 
 impl SomParams {
@@ -35,6 +36,7 @@ impl SomParams {
             radius,
             decay,
             layers: vec![],
+            start_columns: vec![0],
         }
     }
 
@@ -47,6 +49,7 @@ impl SomParams {
         decay: DecayParam,
         layers: Vec<Layer>,
     ) -> Self {
+        let start_cols = Self::calc_start_columns(&layers);
         SomParams {
             epochs,
             neighborhood,
@@ -54,12 +57,26 @@ impl SomParams {
             radius,
             decay,
             layers,
+            start_columns: start_cols,
         }
     }
 
     /// Returns a reference to the layer definitions
     pub fn layers(&self) -> &[Layer] {
         &self.layers
+    }
+    pub fn start_columns(&self) -> &[usize] {
+        &self.start_columns
+    }
+
+    fn calc_start_columns(layers: &[Layer]) -> Vec<usize> {
+        let mut result = vec![0; layers.len()];
+        let mut start_col = 0;
+        for (i, lay) in layers.iter().enumerate() {
+            result[i] = start_col;
+            start_col += lay.ncols();
+        }
+        result
     }
 }
 
@@ -183,12 +200,12 @@ pub struct Som {
 #[allow(dead_code)]
 impl Som {
     /// Creates a new SOM or Super-SOM
-    pub fn new(dims: usize, nrows: usize, ncols: usize, params: SomParams) -> Self {
+    pub fn new(names: &[&str], nrows: usize, ncols: usize, params: SomParams) -> Self {
         let mut som = Som {
-            dims,
+            dims: names.len(),
             nrows,
             ncols,
-            weights: DataFrame::filled(nrows * ncols, &vec![""; dims], 0.0),
+            weights: DataFrame::filled(nrows * ncols, names, 0.0),
             distances_sq: Self::calc_distance_matix(nrows, ncols),
             params,
             epoch: 0,
@@ -366,25 +383,8 @@ mod test {
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
         );
-        let som = Som::new(3, 3, 3, params);
+        let som = Som::new(&["A", "B", "C"], 3, 3, params);
         assert_eq!(som.distances_sq.get(0, 8), &8.0);
-    }
-
-    #[test]
-    fn create_large_som() {
-        let params = SomParams::simple(
-            100,
-            Neighborhood::Gauss,
-            DecayParam::lin(0.2, 0.01),
-            DecayParam::lin(1.0, 0.5),
-            DecayParam::lin(0.2, 0.001),
-        );
-        let som = Som::new(12, 20, 30, params);
-
-        assert_eq!(som.ncols, 30);
-        assert_eq!(som.nrows, 20);
-        assert_eq!(som.weights.ncols(), 12);
-        assert_eq!(som.weights.nrows(), 20 * 30);
     }
 
     #[test]
@@ -396,7 +396,7 @@ mod test {
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
         );
-        let mut som = Som::new(3, 4, 4, params);
+        let mut som = Som::new(&["A", "B", "C"], 4, 4, params);
 
         som.train(&[1.0, 1.0, 1.0]);
     }
@@ -410,7 +410,7 @@ mod test {
             DecayParam::lin(5.0, 0.5),
             DecayParam::exp(0.2, 0.001),
         );
-        let mut som = Som::new(cols.len(), 16, 16, params);
+        let mut som = Som::new(&cols, 16, 16, params);
 
         let mut rng = rand::thread_rng();
         let mut data = DataFrame::empty(&cols);

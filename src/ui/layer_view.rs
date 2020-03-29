@@ -60,13 +60,7 @@ impl LayerView {
         } else {
             self.layers[0]
         };
-        let start_col = params
-            .layers()
-            .iter()
-            .enumerate()
-            .take_while(|(i, _)| *i != layer)
-            .map(|(_, l)| l.ncols())
-            .sum();
+        let start_col = params.start_columns()[layer];
         let classes: Vec<_> = self.names[start_col..(start_col + params.layers()[layer].ncols())]
             .iter()
             .map(|n| n.splitn(2, ':').nth(1).unwrap())
@@ -321,7 +315,7 @@ mod test {
 
     #[test]
     fn view_layer() {
-        let dim = 5;
+        let cols = ["A", "B", "C", "D", "E"];
         let params = SomParams::xyf(
             1000,
             Neighborhood::Gauss,
@@ -330,14 +324,14 @@ mod test {
             DecayParam::exp(0.25, 0.0001),
             vec![Layer::cont(3, 0.5), Layer::cat(2, 0.5)],
         );
-        let som = Som::new(dim, 16, 20, params);
+        let som = Som::new(&cols, 16, 20, params);
 
         let win = WindowBuilder::new()
             .with_dimensions(800, 600)
             .with_fps_skip(10.0)
             .build();
 
-        let mut view = LayerView::new(win, &[0], &["A", "B", "C", "D", "E"], None);
+        let mut view = LayerView::new(win, &[0], &cols, None);
 
         //while view.window.is_open() {
         view.draw(&som);

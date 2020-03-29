@@ -52,6 +52,9 @@ pub struct Cli {
     /// No-data value. Default 'NA'.
     #[structopt(long = "--no-data")]
     no_data: Option<String>,
+    /// Output base path, with base file name.
+    #[structopt(short, long)]
+    output: Option<String>,
 }
 
 /// Parsed command line arguments.
@@ -68,6 +71,7 @@ pub struct CliParsed {
     pub gui: bool,
     pub no_data: String,
     pub fps: f64,
+    pub output: Option<String>,
 }
 
 impl CliParsed {
@@ -77,10 +81,10 @@ impl CliParsed {
             file: cli.file.clone(),
             size: (cli.size[0], cli.size[1]),
             episodes: cli.episodes,
-            layers: Self::to_layers(&mut cli),
-            alpha: Self::to_decay(cli.alpha, "alpha"),
-            radius: Self::to_decay(cli.radius, "radius"),
-            decay: Self::to_decay(cli.decay, "decay"),
+            layers: Self::parse_layers(&mut cli),
+            alpha: Self::parse_decay(cli.alpha, "alpha"),
+            radius: Self::parse_decay(cli.radius, "radius"),
+            decay: Self::parse_decay(cli.decay, "decay"),
             neigh: match &cli.neigh {
                 Some(n) => Neighborhood::from_string(n).unwrap(),
                 None => Neighborhood::Gauss,
@@ -88,10 +92,11 @@ impl CliParsed {
             gui: !cli.nogui,
             no_data: cli.no_data.unwrap_or("NA".to_string()),
             fps: cli.fps.unwrap_or(2.0),
+            output: cli.output,
         }
     }
 
-    fn to_decay(values: Vec<String>, name: &str) -> DecayParam {
+    fn parse_decay(values: Vec<String>, name: &str) -> DecayParam {
         if values.len() != 3 {
             panic!(format!(
                 "Three argument required for {}: start value, end value, decay function (lin|exp)",
@@ -114,7 +119,7 @@ impl CliParsed {
             },*/
         )
     }
-    fn to_layers(cli: &mut Cli) -> Vec<InputLayer> {
+    fn parse_layers(cli: &mut Cli) -> Vec<InputLayer> {
         if cli.layers.is_empty() {
             panic!("Expected columns for at least one layer (option --layers)");
         }
