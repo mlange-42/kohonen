@@ -60,27 +60,35 @@ pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame, layers: &[Layer]) -> (
     let mut min_dist = std::f64::MAX;
     let mut min_idx: usize = 0;
     for (idx_to, row_to) in to.iter_rows().enumerate() {
-        let mut start = 0_usize;
-        let mut dist = 0.0;
-        for layer in layers {
-            let end = start + layer.ncols();
-            let d = if layer.categorical() {
-                TANIMOTO.distance(&from[start..end], &row_to[start..end])
-            } else {
-                EUCLIDEAN.distance(&from[start..end], &row_to[start..end])
-            };
-            if !d.is_nan() {
-                dist += d * layer.weight();
-            }
-
-            start = end;
-        }
+        let dist = distance_xyf(from, row_to, layers, min_dist);
+        //let dist = distance_xyf(from, row_to, layers, std::f64::MAX);
         if dist < min_dist {
             min_dist = dist;
-            min_idx = idx_to
+            min_idx = idx_to;
         }
     }
     (min_idx, min_dist)
+}
+
+pub fn distance_xyf(from: &[f64], to: &[f64], layers: &[Layer], min_so_far: f64) -> f64 {
+    let mut start = 0_usize;
+    let mut dist = 0.0;
+    for layer in layers {
+        let end = start + layer.ncols();
+        let d = if layer.categorical() {
+            TANIMOTO.distance(&from[start..end], &to[start..end])
+        } else {
+            EUCLIDEAN.distance(&from[start..end], &to[start..end])
+        };
+        if !d.is_nan() {
+            dist += d * layer.weight();
+        }
+        start = end;
+        if dist > min_so_far {
+            return std::f64::MAX;
+        }
+    }
+    dist
 }
 
 /// Nearest-neighbors for multiple starting points, by Euclidean distance.
