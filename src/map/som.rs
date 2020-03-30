@@ -4,11 +4,13 @@ use crate::calc::metric::{Metric, SqEuclideanMetric};
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
 use crate::data::DataFrame;
-use crate::ParseEnumError;
+use crate::{EnumFromString, ParseEnumError};
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::cmp;
 
 /// SOM training parameters
+#[derive(Serialize, Deserialize)]
 pub struct SomParams {
     epochs: u32,
     //metric: M,
@@ -17,6 +19,7 @@ pub struct SomParams {
     radius: DecayParam,
     decay: DecayParam,
     layers: Vec<Layer>,
+    start_columns: Vec<usize>,
 }
 
 impl SomParams {
@@ -35,6 +38,7 @@ impl SomParams {
             radius,
             decay,
             layers: vec![],
+            start_columns: vec![0],
         }
     }
 
@@ -47,6 +51,7 @@ impl SomParams {
         decay: DecayParam,
         layers: Vec<Layer>,
     ) -> Self {
+        let start_cols = Self::calc_start_columns(&layers);
         SomParams {
             epochs,
             neighborhood,
@@ -54,6 +59,7 @@ impl SomParams {
             radius,
             decay,
             layers,
+            start_columns: start_cols,
         }
     }
 
@@ -61,10 +67,25 @@ impl SomParams {
     pub fn layers(&self) -> &[Layer] {
         &self.layers
     }
+
+    /// Returns a list of the first column index for each layer.
+    pub fn start_columns(&self) -> &[usize] {
+        &self.start_columns
+    }
+
+    fn calc_start_columns(layers: &[Layer]) -> Vec<usize> {
+        let mut result = vec![0; layers.len()];
+        let mut start_col = 0;
+        for (i, lay) in layers.iter().enumerate() {
+            result[i] = start_col;
+            start_col += lay.ncols();
+        }
+        result
+    }
 }
 
 /// Layer definition for multi-layered SOMs.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Layer {
     ncols: usize,
     weight: f64,
@@ -102,15 +123,18 @@ impl Layer {
 }
 
 /// Decay functions for learing parameters.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DecayFunction {
     /// Linear decay
     Linear,
     /// Exponential decay
     Exponential,
 }
-impl DecayFunction {
-    pub fn from_string(str: &str) -> Result<DecayFunction, ParseEnumError> {
+impl EnumFromString for DecayFunction {
+    /// Parse a string to a `DecayFunction`.
+    ///
+    /// Accepts `"lin" | "exp"`.
+    fn from_string(str: &str) -> Result<DecayFunction, ParseEnumError> {
         match str {
             "lin" => Ok(DecayFunction::Linear),
             "exp" => Ok(DecayFunction::Exponential),
@@ -122,7 +146,7 @@ impl DecayFunction {
     }
 }
 /// Decay parameters for learing parameters.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecayParam {
     start: f64,
     end: f64,
@@ -169,26 +193,28 @@ impl DecayParam {
 }
 
 /// Super-SOM core type.
+#[derive(Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct Som {
     dims: usize,
     nrows: usize,
     ncols: usize,
     weights: DataFrame,
-    distances_sq: DataFrame,
     params: SomParams,
     epoch: u32,
+    #[serde(skip_serializing)]
+    distances_sq: DataFrame,
 }
 
 #[allow(dead_code)]
 impl Som {
     /// Creates a new SOM or Super-SOM
-    pub fn new(dims: usize, nrows: usize, ncols: usize, params: SomParams) -> Self {
+    pub fn new(names: &[&str], nrows: usize, ncols: usize, params: SomParams) -> Self {
         let mut som = Som {
-            dims,
+            dims: names.len(),
             nrows,
             ncols,
-            weights: DataFrame::filled(nrows * ncols, &vec![""; dims], 0.0),
+            weights: DataFrame::filled(nrows * ncols, names, 0.0),
             distances_sq: Self::calc_distance_matix(nrows, ncols),
             params,
             epoch: 0,
@@ -366,25 +392,8 @@ mod test {
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
         );
-        let som = Som::new(3, 3, 3, params);
+        let som = Som::new(&["A", "B", "C"], 3, 3, params);
         assert_eq!(som.distances_sq.get(0, 8), &8.0);
-    }
-
-    #[test]
-    fn create_large_som() {
-        let params = SomParams::simple(
-            100,
-            Neighborhood::Gauss,
-            DecayParam::lin(0.2, 0.01),
-            DecayParam::lin(1.0, 0.5),
-            DecayParam::lin(0.2, 0.001),
-        );
-        let som = Som::new(12, 20, 30, params);
-
-        assert_eq!(som.ncols, 30);
-        assert_eq!(som.nrows, 20);
-        assert_eq!(som.weights.ncols(), 12);
-        assert_eq!(som.weights.nrows(), 20 * 30);
     }
 
     #[test]
@@ -396,7 +405,7 @@ mod test {
             DecayParam::lin(1.0, 0.5),
             DecayParam::lin(0.2, 0.001),
         );
-        let mut som = Som::new(3, 4, 4, params);
+        let mut som = Som::new(&["A", "B", "C"], 4, 4, params);
 
         som.train(&[1.0, 1.0, 1.0]);
     }
@@ -410,7 +419,7 @@ mod test {
             DecayParam::lin(5.0, 0.5),
             DecayParam::exp(0.2, 0.001),
         );
-        let mut som = Som::new(cols.len(), 16, 16, params);
+        let mut som = Som::new(&cols, 16, 16, params);
 
         let mut rng = rand::thread_rng();
         let mut data = DataFrame::empty(&cols);

@@ -3,8 +3,10 @@ use crate::calc::neighborhood::Neighborhood;
 use crate::calc::norm::Norm;
 use crate::map::som::{DecayFunction, DecayParam};
 use crate::proc::InputLayer;
+use crate::EnumFromString;
 use structopt::StructOpt;
 
+/// Raw command line arguments.
 #[derive(StructOpt)]
 #[structopt(name = "Super-SOM command line application")]
 pub struct Cli {
@@ -21,10 +23,13 @@ pub struct Cli {
     /// Layer columns. Put layers in quotes: `"X1 X2 X3" "Y1"`
     #[structopt(short, long)]
     layers: Vec<String>,
+    /// Columns to be preserved
+    #[structopt(long)]
+    pub preserve: Vec<String>,
     /// Layer weights list
     #[structopt(short, long)]
     weights: Vec<f64>,
-    /// Are layers categorical list (0/1). Default 1.0
+    /// Are layers categorical list (0/1). Default 1.
     #[structopt(short, long)]
     categ: Vec<i32>,
     /// Normalizer per layer list (gauss, unit, none). Default gauss.
@@ -45,20 +50,25 @@ pub struct Cli {
     /// Disable GUI
     #[structopt(long = "--no-gui")]
     nogui: bool,
-    /// Disable GUI
+    /// Maximum GUI update frequency in frames per second. Default 2.0
     #[structopt(long = "--fps")]
     fps: Option<f64>,
     /// No-data value. Default 'NA'.
     #[structopt(long = "--no-data")]
     no_data: Option<String>,
+    /// Output base path, with base file name.
+    #[structopt(short, long)]
+    output: Option<String>,
 }
 
+/// Parsed command line arguments.
 #[derive(Debug)]
 pub struct CliParsed {
     pub file: String,
     pub size: (usize, usize),
     pub episodes: u32,
     pub layers: Vec<InputLayer>,
+    pub preserve: Vec<String>,
     pub alpha: DecayParam,
     pub radius: DecayParam,
     pub decay: DecayParam,
@@ -66,18 +76,21 @@ pub struct CliParsed {
     pub gui: bool,
     pub no_data: String,
     pub fps: f64,
+    pub output: Option<String>,
 }
 
 impl CliParsed {
+    /// Parse arguments from a [`Cli`](struct.Cli.html).
     pub fn from_cli(mut cli: Cli) -> Self {
         CliParsed {
             file: cli.file.clone(),
             size: (cli.size[0], cli.size[1]),
             episodes: cli.episodes,
-            layers: Self::to_layers(&mut cli),
-            alpha: Self::to_decay(cli.alpha, "alpha"),
-            radius: Self::to_decay(cli.radius, "radius"),
-            decay: Self::to_decay(cli.decay, "decay"),
+            layers: Self::parse_layers(&mut cli),
+            preserve: cli.preserve,
+            alpha: Self::parse_decay(cli.alpha, "alpha"),
+            radius: Self::parse_decay(cli.radius, "radius"),
+            decay: Self::parse_decay(cli.decay, "decay"),
             neigh: match &cli.neigh {
                 Some(n) => Neighborhood::from_string(n).unwrap(),
                 None => Neighborhood::Gauss,
@@ -85,10 +98,11 @@ impl CliParsed {
             gui: !cli.nogui,
             no_data: cli.no_data.unwrap_or("NA".to_string()),
             fps: cli.fps.unwrap_or(2.0),
+            output: cli.output,
         }
     }
 
-    fn to_decay(values: Vec<String>, name: &str) -> DecayParam {
+    fn parse_decay(values: Vec<String>, name: &str) -> DecayParam {
         if values.len() != 3 {
             panic!(format!(
                 "Three argument required for {}: start value, end value, decay function (lin|exp)",
@@ -111,7 +125,7 @@ impl CliParsed {
             },*/
         )
     }
-    fn to_layers(cli: &mut Cli) -> Vec<InputLayer> {
+    fn parse_layers(cli: &mut Cli) -> Vec<InputLayer> {
         if cli.layers.is_empty() {
             panic!("Expected columns for at least one layer (option --layers)");
         }

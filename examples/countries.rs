@@ -19,10 +19,10 @@ fn main() {
             "Income_low_40",
             "Income_high_20",
         ]),
-        //InputLayer::cat_simple("species"),
+        InputLayer::cat_simple("continent"),
     ];
 
-    let proc = ProcessorBuilder::new(&layers)
+    let proc = ProcessorBuilder::new(&layers, &vec!["Country".to_string(), "code".to_string()])
         .with_delimiter(b';')
         .with_no_data("-")
         .build_from_file("example_data/countries.csv")
@@ -31,7 +31,7 @@ fn main() {
     let mut som = proc.create_som(
         16,
         20,
-        5000,
+        1000,
         Neighborhood::Gauss,
         DecayParam::lin(0.2, 0.01),
         DecayParam::lin(8.0, 0.5),
@@ -41,7 +41,7 @@ fn main() {
     let win_x = WindowBuilder::new()
         .with_position((10, 10))
         .with_dimensions(1000, 500)
-        .with_fps_skip(5.0)
+        .with_fps_skip(1.0)
         .build();
 
     let mut view_x = LayerView::new(win_x, &[0], &proc.data().names_ref_vec(), None);
@@ -50,4 +50,10 @@ fn main() {
         som.epoch(proc.data(), None);
         view_x.draw(&som);
     }
+
+    let units_file = "example_data/countries-units.csv";
+    proc.write_som_units(&som, &units_file, true).unwrap();
+    let data_file = "example_data/countries-out.csv";
+    proc.write_data_nearest(&som, proc.data(), &data_file)
+        .unwrap();
 }

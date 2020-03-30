@@ -24,7 +24,7 @@ fn run_xyf(graphics: bool) {
         DecayParam::exp(0.25, 0.0001),
         vec![Layer::cont(2, 0.5), Layer::cat(2, 0.5)],
     );
-    let mut som = Som::new(cols.len(), 12, 24, params);
+    let mut som = Som::new(&cols, 12, 24, params);
 
     let mut rng = rand::thread_rng();
     let mut data = DataFrame::empty(&cols);

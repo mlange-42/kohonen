@@ -1,7 +1,7 @@
 ..\target\release\kohonen.exe ^
---file ..\example_data/iris.csv ^
+--file ..\example_data\iris.csv ^
 --size 20 16 ^
---episodes 5000 ^
+--episodes 2500 ^
 --layers "sepal_length sepal_width petal_length petal_width" "species" ^
 --categ 0 1 ^
 --norm gauss none ^
@@ -9,4 +9,5 @@
 --alpha 0.2 0.01 lin ^
 --radius 8 0.7 lin ^
 --decay 0.2 0.001 exp ^
---neigh gauss
+--neigh gauss ^
+--output ..\example_data\iris

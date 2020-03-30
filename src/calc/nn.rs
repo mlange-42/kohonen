@@ -13,7 +13,7 @@ const EUCLIDEAN_SQ: SqEuclideanMetric = SqEuclideanMetric();
 const TANIMOTO: TanimotoMetric = TanimotoMetric();
 
 /// Nearest-neighbor by Euclidean distance.
-/// Dimensions with NA values are ignored.
+/// Dimensions with `NA` values are ignored.
 /// # Returns
 /// (index, distance)
 pub fn nearest_neighbor(from: &[f64], to: &DataFrame) -> (usize, f64) {
@@ -32,7 +32,7 @@ pub fn nearest_neighbor(from: &[f64], to: &DataFrame) -> (usize, f64) {
 }
 
 /// Nearest-neighbor by Tanimoto distance.
-/// Dimensions with NA values are ignored.
+/// Dimensions with `NA` values are ignored.
 /// # Returns
 /// (index, distance)
 pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame) -> (usize, f64) {
@@ -51,7 +51,7 @@ pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame) -> (usize, f64) {
 }
 
 /// Nearest-neighbor for XYF-maps. Layers determine distance metrics and weighting.
-/// Dimensions with NA values are ignored.
+/// Dimensions with `NA` values are ignored.
 /// # Returns
 /// (index, weighted-distance)
 pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame, layers: &[Layer]) -> (usize, f64) {
@@ -60,24 +60,37 @@ pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame, layers: &[Layer]) -> (
     let mut min_dist = std::f64::MAX;
     let mut min_idx: usize = 0;
     for (idx_to, row_to) in to.iter_rows().enumerate() {
-        let mut start = 0_usize;
-        let mut dist = 0.0;
-        for layer in layers {
-            let end = start + layer.ncols();
-            dist += layer.weight()
-                * if layer.categorical() {
-                    TANIMOTO.distance(&from[start..end], &row_to[start..end])
-                } else {
-                    EUCLIDEAN.distance(&from[start..end], &row_to[start..end])
-                };
-            start = end;
-        }
+        let dist = distance_xyf(from, row_to, layers, min_dist);
+        //let dist = distance_xyf(from, row_to, layers, std::f64::MAX);
         if dist < min_dist {
             min_dist = dist;
-            min_idx = idx_to
+            min_idx = idx_to;
         }
     }
     (min_idx, min_dist)
+}
+
+/// Calculates distance for potential multi-layered data / SOMs.
+/// Stops calculation and returns `f64::MAX` as soon as `min_so_far` is exceeded (for performance).
+pub fn distance_xyf(from: &[f64], to: &[f64], layers: &[Layer], min_so_far: f64) -> f64 {
+    let mut start = 0_usize;
+    let mut dist = 0.0;
+    for layer in layers {
+        let end = start + layer.ncols();
+        let d = if layer.categorical() {
+            TANIMOTO.distance(&from[start..end], &to[start..end])
+        } else {
+            EUCLIDEAN.distance(&from[start..end], &to[start..end])
+        };
+        if !d.is_nan() {
+            dist += d * layer.weight();
+        }
+        start = end;
+        if dist > min_so_far {
+            return std::f64::MAX;
+        }
+    }
+    dist
 }
 
 /// Nearest-neighbors for multiple starting points, by Euclidean distance.
