@@ -3,6 +3,8 @@ use kohonen::cli::{Cli, CliParsed};
 use kohonen::map::som::Som;
 use kohonen::proc::{Processor, ProcessorBuilder};
 use kohonen::ui::LayerView;
+use std::fs::File;
+use std::io::Write;
 use std::time::{Duration, Instant};
 use structopt::StructOpt;
 
@@ -89,5 +91,18 @@ fn write_output(parsed: &CliParsed, proc: &Processor, som: &Som) {
         let data_file = format!("{}-out.csv", &out);
         proc.write_data_nearest(&som, proc.data(), &data_file)
             .unwrap();
+
+        let som_file = format!("{}-som.json", &out);
+        let serialized = serde_json::to_string_pretty(&(som, proc.denorm())).unwrap();
+        let mut file = File::create(som_file).unwrap();
+        file.write_all(serialized.as_bytes()).unwrap();
     }
 }
+
+/*
+#[derive(Serialize, Deserialize)]
+struct SomSerialization<'a> {
+    som: &'a Som,
+    denorm: &'a [LinearTransform],
+}
+*/

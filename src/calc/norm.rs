@@ -2,9 +2,10 @@
 
 use crate::data::DataFrame;
 use crate::ParseEnumError;
+use serde::{Deserialize, Serialize};
 
 /// Normalization types.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
 pub enum Norm {
     /// Normalize to [0, 1].
     Unit,
@@ -29,7 +30,7 @@ impl Norm {
 }
 
 /// De-normalization parameters. Obtained from [`normalize`](fn.normalize.html).
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LinearTransform {
     scale: f64,
     offset: f64,

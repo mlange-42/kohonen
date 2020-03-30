@@ -2,17 +2,18 @@
 
 use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
-use crate::calc::nn::nearest_neighbor_xyf;
-use crate::calc::norm::{denormalize_columns, normalize, LinearTransform, Norm};
+use crate::calc::nn;
+use crate::calc::norm;
 use crate::data::DataFrame;
 use crate::map::som::{DecayParam, Layer, Som, SomParams};
 use crate::DataTypeError;
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::error::Error;
 
 /// Layer definition for input tables.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InputLayer {
     names: Vec<String>,
     indices: Option<Vec<usize>>,
@@ -20,7 +21,7 @@ pub struct InputLayer {
     weight: f64,
     is_class: bool,
     metric: Metric,
-    norm: Norm,
+    norm: norm::Norm,
     scale: f64,
 }
 
@@ -31,11 +32,11 @@ impl InputLayer {
         weight: f64,
         is_class: bool,
         metric: Metric,
-        norm: Norm,
+        norm: norm::Norm,
         scale: Option<f64>,
     ) -> Self {
         assert!(names.len() == 1 || !is_class);
-        assert!(norm == Norm::None || !is_class);
+        assert!(norm == norm::Norm::None || !is_class);
         InputLayer {
             names: names.iter().map(|x| (&**x).to_string()).collect(),
             indices: None,
@@ -57,7 +58,7 @@ impl InputLayer {
             weight,
             is_class: true,
             metric: Metric::Tanimoto,
-            norm: Norm::None,
+            norm: norm::Norm::None,
             scale: 1.0,
         }
     }
@@ -71,13 +72,13 @@ impl InputLayer {
             weight: 1.0,
             is_class: true,
             metric: Metric::Tanimoto,
-            norm: Norm::None,
+            norm: norm::Norm::None,
             scale: 1.0,
         }
     }
 
     /// Creates a new continuous / non-categorical input layer definition.
-    pub fn cont(names: &[&str], weight: f64, norm: Norm, scale: Option<f64>) -> Self {
+    pub fn cont(names: &[&str], weight: f64, norm: norm::Norm, scale: Option<f64>) -> Self {
         InputLayer {
             names: names.iter().map(|x| (&**x).to_string()).collect(),
             indices: None,
@@ -99,14 +100,14 @@ impl InputLayer {
             weight: 1.0,
             is_class: false,
             metric: Metric::Euclidean,
-            norm: Norm::Gauss,
+            norm: norm::Norm::Gauss,
             scale: 1.0,
         }
     }
 }
 
 /// Csv file options
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CsvOptions {
     delimiter: u8,
     no_data: String,
@@ -169,16 +170,20 @@ impl ProcessorBuilder {
 
 /// Central type for SOM setup and processing.
 #[allow(dead_code)]
+#[derive(Serialize, Deserialize)]
 pub struct Processor {
     input_layers: Vec<InputLayer>,
+    #[serde(skip_serializing)]
     data: DataFrame,
     layers: Vec<Layer>,
     preserve_columns: Vec<String>,
+    #[serde(skip_serializing)]
     preserved: Vec<Vec<String>>,
     label_column: Option<String>,
+    #[serde(skip_serializing)]
     labels: Option<Vec<(usize, String)>>,
-    norm: Vec<Norm>,
-    denorm: Vec<LinearTransform>,
+    norm: Vec<norm::Norm>,
+    denorm: Vec<norm::LinearTransform>,
     scale: Vec<f64>,
     csv_options: CsvOptions,
 }
@@ -217,11 +222,11 @@ impl Processor {
         &self.input_layers
     }
     /// Return a reference to the applied normalizers.
-    pub fn norm(&self) -> &[Norm] {
+    pub fn norm(&self) -> &[norm::Norm] {
         &self.norm
     }
     /// Return a reference to the transforms for de-normalization.
-    pub fn denorm(&self) -> &[LinearTransform] {
+    pub fn denorm(&self) -> &[norm::LinearTransform] {
         &self.denorm
     }
     /// Return a reference the applies scalings (not used so far).
@@ -432,7 +437,7 @@ impl Processor {
                 scale.push(inp.scale);
             }
         }
-        let (data_norm, denorm) = normalize(&df, &norm, &scale);
+        let (data_norm, denorm) = norm::normalize(&df, &norm, &scale);
 
         Ok(Processor {
             input_layers,
@@ -534,7 +539,7 @@ impl Processor {
         let layer = &self.layers[layer_index];
         let start_col = som.params().start_columns()[layer_index];
         let range = start_col..(start_col + layer.ncols());
-        Ok(denormalize_columns(
+        Ok(norm::denormalize_columns(
             data,
             &range.collect::<Vec<_>>(),
             &self.denorm()[start_col..(start_col + layer.ncols())],
@@ -618,7 +623,7 @@ impl Processor {
         assert_eq!(som.weights().names(), data.names());
 
         data.iter_rows()
-            .map(|row| nearest_neighbor_xyf(row, som.weights(), self.layers()))
+            .map(|row| nn::nearest_neighbor_xyf(row, som.weights(), self.layers()))
             .collect()
     }
 
