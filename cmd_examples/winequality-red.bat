@@ -1,0 +1,16 @@
+..\target\release\kohonen.exe ^
+--file ..\example_data\winequality-red.csv ^
+--size 16 12 ^
+--epochs 5000 ^
+--layers "fixed-acidity volatile-acidity citric-acid residual-sugar chlorides free-sulfur-dioxide total-sulfur-dioxide density pH sulphates alcohol" "quality" ^
+--labels quality ^
+--categ false false ^
+--norm gauss unit ^
+--weights 1 0.5 ^
+--alpha 0.2 0.01 lin ^
+--radius 6 0.8 lin ^
+--decay 0.2 0.001 exp ^
+--neigh gauss ^
+--no-data - ^
+--fps 1 ^
+--output ..\example_data\_winequality-red

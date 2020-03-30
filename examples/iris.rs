@@ -18,7 +18,7 @@ fn main() {
     let mut som = proc.create_som(
         16,
         20,
-        5000,
+        100,
         Neighborhood::Gauss,
         DecayParam::lin(0.2, 0.01),
         DecayParam::lin(8.0, 0.5),

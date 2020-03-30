@@ -18,9 +18,9 @@ pub struct Cli {
     /// SOM size: width, height.
     #[structopt(short, long, number_of_values = 2)]
     size: Vec<usize>,
-    /// Number of training episodes.
+    /// Number of training epochs.
     #[structopt(short, long)]
-    episodes: u32,
+    epochs: u32,
     /// Layer columns. Put layers in quotes: `"X1 X2 X3" "Y1"`
     #[structopt(short, long)]
     layers: Vec<String>,
@@ -79,7 +79,7 @@ pub struct Cli {
 pub struct CliParsed {
     pub file: String,
     pub size: (usize, usize),
-    pub episodes: u32,
+    pub epochs: u32,
     pub layers: Vec<InputLayer>,
     pub preserve: Vec<String>,
     pub labels: Option<String>,
@@ -101,7 +101,7 @@ impl CliParsed {
         CliParsed {
             file: cli.file.clone(),
             size: (cli.size[0], cli.size[1]),
-            episodes: cli.episodes,
+            epochs: cli.epochs,
             layers: Self::parse_layers(&mut cli),
             preserve: cli.preserve,
             labels: cli.labels,

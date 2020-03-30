@@ -183,15 +183,15 @@ impl DecayParam {
             function: DecayFunction::Exponential,
         }
     }
-    /// Get the parameter's value for the given training episode.
+    /// Get the parameter's value for the given training epoch.
     pub fn get(&self, epoch: u32, max_epochs: u32) -> f64 {
         match self.function {
             DecayFunction::Linear => {
-                let frac = epoch as f64 / max_epochs as f64;
+                let frac = epoch as f64 / (max_epochs - 1) as f64;
                 self.start + frac * (self.end - self.start)
             }
             DecayFunction::Exponential => {
-                let rate = (1.0 / -(max_epochs as f64)) * (self.end / self.start).ln();
+                let rate = (1.0 / -((max_epochs - 1) as f64)) * (self.end / self.start).ln();
                 self.start * (-rate * epoch as f64).exp()
             }
         }
