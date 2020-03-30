@@ -1,7 +1,7 @@
 ..\target\release\kohonen.exe ^
 --file ..\example_data\winequality-red.csv ^
 --size 16 12 ^
---epochs 5000 ^
+--epochs 1000 ^
 --layers "fixed-acidity volatile-acidity citric-acid residual-sugar chlorides free-sulfur-dioxide total-sulfur-dioxide density pH sulphates alcohol" "quality" ^
 --labels quality ^
 --categ false false ^
