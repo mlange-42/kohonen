@@ -27,3 +27,7 @@ To use this crate as a library, add the following to your `Cargo.toml` dependenc
 kohonen = { git = "https://github.com/mlange-42/kohonen.git" }
 ```
 See the included examples for usage details.
+
+## Development version
+
+For the latest development version, see branch [`dev`](https://github.com/mlange-42/kohonen/tree/dev).
