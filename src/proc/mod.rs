@@ -1,5 +1,6 @@
 //! Pre- and post-processing of SOM training data, SOM creation.
 
+use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn::nearest_neighbor_xyf;
 use crate::calc::norm::{denormalize_columns, normalize, LinearTransform, Norm};
@@ -18,6 +19,7 @@ pub struct InputLayer {
     num_columns: Option<usize>,
     weight: f64,
     is_class: bool,
+    metric: Metric,
     norm: Norm,
     scale: f64,
 }
@@ -28,6 +30,7 @@ impl InputLayer {
         names: &[&str],
         weight: f64,
         is_class: bool,
+        metric: Metric,
         norm: Norm,
         scale: Option<f64>,
     ) -> Self {
@@ -39,6 +42,7 @@ impl InputLayer {
             num_columns: None,
             weight,
             is_class,
+            metric,
             norm,
             scale: scale.unwrap_or(1.0),
         }
@@ -52,6 +56,7 @@ impl InputLayer {
             num_columns: None,
             weight,
             is_class: true,
+            metric: Metric::Tanimoto,
             norm: Norm::None,
             scale: 1.0,
         }
@@ -65,6 +70,7 @@ impl InputLayer {
             num_columns: None,
             weight: 1.0,
             is_class: true,
+            metric: Metric::Tanimoto,
             norm: Norm::None,
             scale: 1.0,
         }
@@ -78,6 +84,7 @@ impl InputLayer {
             num_columns: None,
             weight,
             is_class: false,
+            metric: Metric::Euclidean,
             norm,
             scale: scale.unwrap_or(1.0),
         }
@@ -91,6 +98,7 @@ impl InputLayer {
             num_columns: None,
             weight: 1.0,
             is_class: false,
+            metric: Metric::Euclidean,
             norm: Norm::Gauss,
             scale: 1.0,
         }
@@ -108,14 +116,26 @@ pub struct CsvOptions {
 pub struct ProcessorBuilder {
     input_layers: Vec<InputLayer>,
     preserve: Vec<String>,
+    labels: Option<String>,
+    label_length: Option<usize>,
+    label_samples: Option<usize>,
     csv_options: CsvOptions,
 }
 impl ProcessorBuilder {
     /// Creates a `ProcessorBuilder` for the given [`InputLayer`s](struct.InputLayer.html).
-    pub fn new(layers: &[InputLayer], preserve: &Vec<String>) -> Self {
+    pub fn new(
+        layers: &[InputLayer],
+        preserve: &Vec<String>,
+        label: &Option<String>,
+        label_length: &Option<usize>,
+        label_samples: &Option<usize>,
+    ) -> Self {
         ProcessorBuilder {
             input_layers: layers.to_vec(),
             preserve: preserve.clone(),
+            labels: label.clone(),
+            label_length: label_length.clone(),
+            label_samples: label_samples.clone(),
             csv_options: CsvOptions {
                 delimiter: b',',
                 no_data: "NA".to_string(),
@@ -134,7 +154,15 @@ impl ProcessorBuilder {
     }
     /// Builds a [`Processor`](struct.Processor.html) from the given data file.
     pub fn build_from_file(self, path: &str) -> Result<Processor, Box<dyn Error>> {
-        let proc = Processor::new(self.input_layers, self.preserve, path, &self.csv_options)?;
+        let proc = Processor::new(
+            self.input_layers,
+            self.preserve,
+            self.labels,
+            self.label_length,
+            self.label_samples,
+            path,
+            &self.csv_options,
+        )?;
         Ok(proc)
     }
 }
@@ -147,6 +175,8 @@ pub struct Processor {
     layers: Vec<Layer>,
     preserve_columns: Vec<String>,
     preserved: Vec<Vec<String>>,
+    label_column: Option<String>,
+    labels: Option<Vec<(usize, String)>>,
     norm: Vec<Norm>,
     denorm: Vec<LinearTransform>,
     scale: Vec<f64>,
@@ -157,10 +187,21 @@ impl Processor {
     fn new(
         input_layers: Vec<InputLayer>,
         preserve: Vec<String>,
+        labels: Option<String>,
+        label_length: Option<usize>,
+        label_samples: Option<usize>,
         path: &str,
         csv_options: &CsvOptions,
     ) -> Result<Self, Box<dyn Error>> {
-        Self::read_file(input_layers, preserve, path, csv_options)
+        Self::read_file(
+            input_layers,
+            preserve,
+            labels,
+            label_length,
+            label_samples,
+            path,
+            csv_options,
+        )
     }
 
     /// Return a reference to the normalized data.
@@ -188,9 +229,19 @@ impl Processor {
         &self.scale
     }
 
+    pub fn labels(&self) -> Option<&[(usize, String)]> {
+        match &self.labels {
+            Some(lab) => Some(&lab),
+            None => None,
+        }
+    }
+
     fn read_file(
         mut input_layers: Vec<InputLayer>,
-        preserve: Vec<String>,
+        preserve_columns: Vec<String>,
+        label_column: Option<String>,
+        label_length: Option<usize>,
+        label_samples: Option<usize>,
         path: &str,
         csv_options: &CsvOptions,
     ) -> Result<Processor, Box<dyn Error>> {
@@ -213,7 +264,7 @@ impl Processor {
                         header
                             .iter()
                             .position(|n2| n2 == n)
-                            .expect(&format!("Volumn '{}' not found.", n))
+                            .expect(&format!("Column '{}' not found.", n))
                     })
                     .collect(),
             );
@@ -262,11 +313,13 @@ impl Processor {
         let weight_scale = 1.0 / input_layers.iter().map(|l| l.weight).sum::<f64>();
         let mut layers = Vec::<Layer>::new();
         let mut colnames = Vec::<String>::new();
+
         for (idx, lay) in input_layers.iter().enumerate() {
             layers.push(Layer::new(
                 lay.num_columns.unwrap(),
                 weight_scale * lay.weight,
                 lay.is_class,
+                lay.metric.clone(),
             ));
             if lay.is_class {
                 let base = lay.names[0].clone() + ":";
@@ -278,7 +331,7 @@ impl Processor {
         }
 
         // get id column index
-        let id_indices: Vec<_> = preserve
+        let id_indices: Vec<_> = preserve_columns
             .iter()
             .map(|col| {
                 header
@@ -289,12 +342,26 @@ impl Processor {
             .collect();
         let mut id_values = vec![Vec::<String>::new(); id_indices.len()];
 
+        // get label column
+        let (label_index, mut labels) = match &label_column {
+            Some(col) => (
+                Some(
+                    header
+                        .iter()
+                        .position(|n2| *n2 == col)
+                        .expect(&format!("Label column '{}' not found.", col)),
+                ),
+                Some(Vec::new()),
+            ),
+            None => (None, None),
+        };
+
         // transform to SOM training data format
         let mut df = DataFrame::empty(&colnames.iter().map(|x| &**x).collect::<Vec<_>>());
         let mut row = vec![0.0; colnames.len()];
 
         reader.seek(start_pos).unwrap();
-        for record in reader.records() {
+        for (rec_idx, record) in reader.records().enumerate() {
             let rec = record?;
             for i in 0..row.len() {
                 row[i] = 0.0;
@@ -302,6 +369,15 @@ impl Processor {
             for (idx, col_idx) in id_indices.iter().enumerate() {
                 let id = rec.get(*col_idx).unwrap();
                 id_values[idx].push(id.to_string());
+            }
+            if let Some(col_idx) = &label_index {
+                let mut id = rec.get(*col_idx).unwrap();
+                if let Some(len) = label_length {
+                    if id.len() > len {
+                        id = &id[..len];
+                    }
+                }
+                labels.as_mut().unwrap().push((rec_idx, id.to_string()));
             }
             let mut start = 0;
             for (layer_index, (inp, lay)) in input_layers.iter().zip(layers.iter()).enumerate() {
@@ -338,6 +414,16 @@ impl Processor {
             df.push_row(&row);
         }
 
+        // reduce label samples
+        let mut rng = rand::thread_rng();
+        if let Some(count) = &label_samples {
+            if let Some(labs) = &labels {
+                if count < &labs.len() {
+                    labels = Some(rand::seq::sample_slice(&mut rng, &labs, *count));
+                }
+            }
+        }
+
         let mut norm = Vec::new();
         let mut scale = Vec::new();
         for inp in input_layers.iter() {
@@ -351,8 +437,10 @@ impl Processor {
         Ok(Processor {
             input_layers,
             data: data_norm,
-            preserve_columns: preserve.clone(),
+            preserve_columns: preserve_columns.clone(),
             preserved: id_values,
+            label_column: label_column.clone(),
+            labels,
             layers,
             norm,
             denorm,
@@ -636,7 +724,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![])
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -669,7 +757,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![])
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -698,7 +786,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![])
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -729,7 +817,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![])
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -760,7 +848,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![])
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();

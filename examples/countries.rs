@@ -22,11 +22,17 @@ fn main() {
         InputLayer::cat_simple("continent"),
     ];
 
-    let proc = ProcessorBuilder::new(&layers, &vec!["Country".to_string(), "code".to_string()])
-        .with_delimiter(b';')
-        .with_no_data("-")
-        .build_from_file("example_data/countries.csv")
-        .unwrap();
+    let proc = ProcessorBuilder::new(
+        &layers,
+        &vec!["Country".to_string(), "code".to_string()],
+        &Some("Country".to_string()),
+        &Some(12),
+        &None,
+    )
+    .with_delimiter(b';')
+    .with_no_data("-")
+    .build_from_file("example_data/countries.csv")
+    .unwrap();
 
     let mut som = proc.create_som(
         16,
@@ -48,7 +54,7 @@ fn main() {
 
     while view_x.is_open() {
         som.epoch(proc.data(), None);
-        view_x.draw(&som);
+        view_x.draw(&som, None);
     }
 
     let units_file = "example_data/countries-units.csv";

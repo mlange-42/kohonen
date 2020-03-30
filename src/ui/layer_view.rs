@@ -1,9 +1,12 @@
 //! Viewer for SOMs as heatmaps.
 
+use crate::calc::nn::nearest_neighbor_xyf;
+use crate::data::DataFrame;
 use crate::map::som::Som;
 use easy_graph::color::style::text_anchor::{HPos, Pos, VPos};
 use easy_graph::color::style::{
-    IntoFont, Palette, Palette99, ShapeStyle, TextStyle, BLACK, GREEN, RED, WHITE, YELLOW,
+    IntoFont, Palette, Palette99, RGBColor, ShapeStyle, TextStyle, BLACK, CYAN, GREEN, RED, WHITE,
+    YELLOW,
 };
 use easy_graph::color::{ColorMap, LinearColorMap};
 use easy_graph::ui::drawing::IntoDrawingArea;
@@ -39,21 +42,22 @@ impl LayerView {
     pub fn is_open(&self) -> bool {
         self.window.is_open()
     }
+
     /// Draws the given SOM. Should be called only for the same SOM repeatedly, not for different SOMs!
-    pub fn draw(&mut self, som: &Som) {
+    pub fn draw(&mut self, som: &Som, data: Option<(&DataFrame, &[(usize, String)])>) {
         let params = som.params();
         if (self.layers.len() == 1 && params.layers()[self.layers[0]].categorical())
             || (self.layers.is_empty()
                 && params.layers().len() == 1
                 && params.layers()[0].categorical())
         {
-            self.draw_classes(som);
+            self.draw_classes(som, data);
         } else {
             self.draw_columns(som);
         }
     }
 
-    fn draw_classes(&mut self, som: &Som) {
+    fn draw_classes(&mut self, som: &Som, data: Option<(&DataFrame, &[(usize, String)])>) {
         let params = som.params();
         let layer = if self.layers.is_empty() {
             0
@@ -87,6 +91,8 @@ impl LayerView {
         let scale = self.scale.unwrap();
         let test_style =
             TextStyle::from(("sans-serif", 14).into_font()).pos(Pos::new(HPos::Left, VPos::Top));
+        let label_style = TextStyle::from(("sans-serif", 10).into_font())
+            .pos(Pos::new(HPos::Center, VPos::Center));
 
         self.window.draw(|b| {
             let root = b.into_drawing_area();
@@ -94,6 +100,8 @@ impl LayerView {
 
             let x_min = margin;
             let y_min = margin + heading;
+
+            // Draw units
             for (idx, row) in som.weights().iter_rows().enumerate() {
                 let (r, c) = som.to_row_col(idx);
                 let x = x_min + (c as i32 * scale);
@@ -117,6 +125,8 @@ impl LayerView {
                 ))
                 .unwrap();
             }
+
+            // Draw outline
             root.draw(&Rectangle::new(
                 [
                     (x_min, y_min),
@@ -129,6 +139,44 @@ impl LayerView {
             ))
             .unwrap();
 
+            // Draw labels
+            if let Some((data, labels)) = data {
+                /*let nearest: Vec<_> = data
+                .iter_rows()
+                .map(|row| nearest_neighbor_xyf(row, som.weights(), som.params().layers()))
+                .collect();*/
+                let nearest: Vec<_> = labels
+                    .iter()
+                    .map(|(idx, _lab)| {
+                        nearest_neighbor_xyf(
+                            data.get_row(*idx),
+                            som.weights(),
+                            som.params().layers(),
+                        )
+                    })
+                    .collect();
+
+                let mut total_counts = vec![0; som.weights().nrows()];
+                let mut counts = vec![0; som.weights().nrows()];
+                for (idx, _) in &nearest {
+                    total_counts[*idx] += 1;
+                }
+                //for (data_idx, label) in labels.iter() {
+                for ((idx, _), (_data_idx, label)) in nearest.iter().zip(labels) {
+                    //let (idx, _) = nearest[*data_idx];
+                    let (r, c) = som.to_row_col(*idx);
+                    let offset = 1.0 / (total_counts[*idx] + 1) as f64;
+                    let x = x_min + (c as i32 * scale) + (0.5 * scale as f64) as i32;
+                    let y = y_min
+                        + (r as i32 * scale)
+                        + (offset * (counts[*idx] + 1) as f64 * scale as f64) as i32;
+                    root.draw_text(&label, &label_style, (x, y)).unwrap();
+
+                    counts[*idx] += 1;
+                }
+            }
+
+            // Draw lagend
             let x = x_min + som.ncols() as i32 * scale + 10;
             for (i, class) in classes.iter().enumerate() {
                 let color = Palette99::pick(i);
@@ -182,7 +230,8 @@ impl LayerView {
 
         let ranges = som.weights().ranges();
 
-        let color_map = LinearColorMap::new(&[&GREEN, &YELLOW, &RED]);
+        let color_map =
+            LinearColorMap::new(&[&RGBColor(160, 0, 150), &RED, &YELLOW, &GREEN, &CYAN]);
         let names = &self.names;
         let test_style =
             TextStyle::from(("sans-serif", 14).into_font()).pos(Pos::new(HPos::Left, VPos::Bottom));
@@ -334,7 +383,7 @@ mod test {
         let mut view = LayerView::new(win, &[0], &cols, None);
 
         //while view.window.is_open() {
-        view.draw(&som);
+        view.draw(&som, None);
         //}
     }
 }

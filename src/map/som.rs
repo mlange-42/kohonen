@@ -1,6 +1,6 @@
 //! Super-SOM for flexible use as unsupervised or supervised SOM. Core types.
 
-use crate::calc::metric::{Metric, SqEuclideanMetric};
+use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
 use crate::data::DataFrame;
@@ -90,23 +90,25 @@ pub struct Layer {
     ncols: usize,
     weight: f64,
     categorical: bool,
+    metric: Metric,
 }
 impl Layer {
     /// Creates a new layer.
-    pub fn new(ncols: usize, weight: f64, categorical: bool) -> Self {
+    pub fn new(ncols: usize, weight: f64, categorical: bool, metric: Metric) -> Self {
         Layer {
             ncols,
             weight,
             categorical,
+            metric,
         }
     }
     /// Creates a new continuous layer.
     pub fn cont(ncols: usize, weight: f64) -> Self {
-        Self::new(ncols, weight, false)
+        Self::new(ncols, weight, false, Metric::Euclidean)
     }
     /// Creates a new categorical layer.
     pub fn cat(ncols: usize, weight: f64) -> Self {
-        Self::new(ncols, weight, true)
+        Self::new(ncols, weight, true, Metric::Tanimoto)
     }
     /// The number of data columns of the layer.
     pub fn ncols(&self) -> usize {
@@ -119,6 +121,10 @@ impl Layer {
     /// If the layer is categorical.
     pub fn categorical(&self) -> bool {
         self.categorical
+    }
+    /// The layer's distance metric.
+    pub fn metric(&self) -> &Metric {
+        &self.metric
     }
 }
 
@@ -177,15 +183,15 @@ impl DecayParam {
             function: DecayFunction::Exponential,
         }
     }
-    /// Get the parameter's value for the given training episode.
+    /// Get the parameter's value for the given training epoch.
     pub fn get(&self, epoch: u32, max_epochs: u32) -> f64 {
         match self.function {
             DecayFunction::Linear => {
-                let frac = epoch as f64 / max_epochs as f64;
+                let frac = epoch as f64 / (max_epochs - 1) as f64;
                 self.start + frac * (self.end - self.start)
             }
             DecayFunction::Exponential => {
-                let rate = (1.0 / -(max_epochs as f64)) * (self.end / self.start).ln();
+                let rate = (1.0 / -((max_epochs - 1) as f64)) * (self.end / self.start).ln();
                 self.start * (-rate * epoch as f64).exp()
             }
         }
@@ -241,7 +247,7 @@ impl Som {
 
     /// Pre-calculates the unit-to-unit distance matrix.
     fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame {
-        let metric = SqEuclideanMetric();
+        let metric = Metric::SqEuclidean;
         let mut df = DataFrame::filled(nrows * ncols, &vec![""; nrows * ncols], 0.0);
         for r1 in 0..nrows {
             for c1 in 0..ncols {
