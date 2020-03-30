@@ -16,6 +16,7 @@ fn main() {
         &parsed.preserve,
         &parsed.labels,
         &parsed.label_length,
+        &parsed.label_samples,
     )
     .with_delimiter(b';')
     .with_no_data(&parsed.no_data)

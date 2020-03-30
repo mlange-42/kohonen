@@ -5,7 +5,8 @@ use crate::data::DataFrame;
 use crate::map::som::Som;
 use easy_graph::color::style::text_anchor::{HPos, Pos, VPos};
 use easy_graph::color::style::{
-    IntoFont, Palette, Palette99, ShapeStyle, TextStyle, BLACK, GREEN, RED, WHITE, YELLOW,
+    IntoFont, Palette, Palette99, RGBColor, ShapeStyle, TextStyle, BLACK, CYAN, GREEN, RED, WHITE,
+    YELLOW,
 };
 use easy_graph::color::{ColorMap, LinearColorMap};
 use easy_graph::ui::drawing::IntoDrawingArea;
@@ -43,7 +44,7 @@ impl LayerView {
     }
 
     /// Draws the given SOM. Should be called only for the same SOM repeatedly, not for different SOMs!
-    pub fn draw(&mut self, som: &Som, data: Option<(&DataFrame, &[String])>) {
+    pub fn draw(&mut self, som: &Som, data: Option<(&DataFrame, &[(usize, String)])>) {
         let params = som.params();
         if (self.layers.len() == 1 && params.layers()[self.layers[0]].categorical())
             || (self.layers.is_empty()
@@ -56,7 +57,7 @@ impl LayerView {
         }
     }
 
-    fn draw_classes(&mut self, som: &Som, data: Option<(&DataFrame, &[String])>) {
+    fn draw_classes(&mut self, som: &Som, data: Option<(&DataFrame, &[(usize, String)])>) {
         let params = som.params();
         let layer = if self.layers.is_empty() {
             0
@@ -140,16 +141,29 @@ impl LayerView {
 
             // Draw labels
             if let Some((data, labels)) = data {
-                let nearest: Vec<_> = data
-                    .iter_rows()
-                    .map(|row| nearest_neighbor_xyf(row, som.weights(), som.params().layers()))
+                /*let nearest: Vec<_> = data
+                .iter_rows()
+                .map(|row| nearest_neighbor_xyf(row, som.weights(), som.params().layers()))
+                .collect();*/
+                let nearest: Vec<_> = labels
+                    .iter()
+                    .map(|(idx, _lab)| {
+                        nearest_neighbor_xyf(
+                            data.get_row(*idx),
+                            som.weights(),
+                            som.params().layers(),
+                        )
+                    })
                     .collect();
+
                 let mut total_counts = vec![0; som.weights().nrows()];
                 let mut counts = vec![0; som.weights().nrows()];
                 for (idx, _) in &nearest {
                     total_counts[*idx] += 1;
                 }
-                for ((idx, _), label) in nearest.iter().zip(labels) {
+                //for (data_idx, label) in labels.iter() {
+                for ((idx, _), (_data_idx, label)) in nearest.iter().zip(labels) {
+                    //let (idx, _) = nearest[*data_idx];
                     let (r, c) = som.to_row_col(*idx);
                     let offset = 1.0 / (total_counts[*idx] + 1) as f64;
                     let x = x_min + (c as i32 * scale) + (0.5 * scale as f64) as i32;
@@ -216,7 +230,8 @@ impl LayerView {
 
         let ranges = som.weights().ranges();
 
-        let color_map = LinearColorMap::new(&[&RED, &YELLOW, &GREEN]);
+        let color_map =
+            LinearColorMap::new(&[&RGBColor(160, 0, 150), &RED, &YELLOW, &GREEN, &CYAN]);
         let names = &self.names;
         let test_style =
             TextStyle::from(("sans-serif", 14).into_font()).pos(Pos::new(HPos::Left, VPos::Bottom));

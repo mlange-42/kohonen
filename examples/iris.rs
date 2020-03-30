@@ -10,7 +10,7 @@ fn main() {
         InputLayer::cat_simple("species"),
     ];
 
-    let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None)
+    let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
         .with_delimiter(b';')
         .build_from_file("example_data/iris.csv")
         .unwrap();

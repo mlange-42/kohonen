@@ -27,6 +27,7 @@ fn main() {
         &vec!["Country".to_string(), "code".to_string()],
         &Some("Country".to_string()),
         &Some(12),
+        &None,
     )
     .with_delimiter(b';')
     .with_no_data("-")

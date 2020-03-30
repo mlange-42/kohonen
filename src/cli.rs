@@ -33,6 +33,9 @@ pub struct Cli {
     /// Maximum length of labels. Longer labels are truncated.
     #[structopt(long = "label-length")]
     label_length: Option<usize>,
+    /// Number of labels to show; random sample size.
+    #[structopt(long = "label-samples")]
+    label_samples: Option<usize>,
     /// Layer weights list
     #[structopt(short, long)]
     weights: Vec<f64>,
@@ -81,6 +84,7 @@ pub struct CliParsed {
     pub preserve: Vec<String>,
     pub labels: Option<String>,
     pub label_length: Option<usize>,
+    pub label_samples: Option<usize>,
     pub alpha: DecayParam,
     pub radius: DecayParam,
     pub decay: DecayParam,
@@ -102,6 +106,7 @@ impl CliParsed {
             preserve: cli.preserve,
             labels: cli.labels,
             label_length: cli.label_length,
+            label_samples: cli.label_samples,
             alpha: Self::parse_decay(cli.alpha, "alpha"),
             radius: Self::parse_decay(cli.radius, "radius"),
             decay: Self::parse_decay(cli.decay, "decay"),
