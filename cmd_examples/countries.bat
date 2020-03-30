@@ -1,14 +1,14 @@
 ..\target\release\kohonen.exe ^
 --file ..\example_data\countries.csv ^
 --size 16 12 ^
---epochs 1000 ^
---layers "child_mort_2010 birth_p_1000 GNI LifeExpectancy PopGrowth PopUrbanized PopGrowthUrb AdultLiteracy PrimSchool Income_low_40 Income_high_20" "continent" ^
+--epochs 2500 ^
+--layers "child_mort_2010 birth_p_1000 log_GNI LifeExpectancy PopGrowth PopUrbanized PopGrowthUrb AdultLiteracy PrimSchool Income_low_40 Income_high_20" "continent" ^
 --preserve Country code ^
 --labels Country ^
 --label-length 10 ^
 --categ false true ^
 --norm gauss none ^
---weights 1 0.25 ^
+--weights 1 0.5 ^
 --alpha 0.2 0.01 lin ^
 --radius 6 0.8 lin ^
 --decay 0.2 0.001 exp ^

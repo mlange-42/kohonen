@@ -29,24 +29,57 @@ impl EnumFromString for Neighbors {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Neighborhood {
     Gauss,
+    Triangular,
+    Epanechnikov,
+    Quartic,
+    Triweight,
 }
 impl Neighborhood {
-    /// Calculates the weight, depending on the squared(!) distance.
-    pub fn weight(&self, distance_sq: f64) -> f64 {
+    /// Calculates the weight, depending on the distance.
+    pub fn weight(&self, distance: f64) -> f64 {
         match self {
             Neighborhood::Gauss => {
-                if distance_sq == 0.0 {
+                if distance == 0.0 {
                     1.0
                 } else {
-                    (-0.5 * distance_sq).exp()
+                    (-0.5 * distance * distance).exp()
+                }
+            }
+            Neighborhood::Triangular => {
+                if distance >= 1.0 {
+                    0.0
+                } else {
+                    1.0 - distance
+                }
+            }
+            Neighborhood::Epanechnikov => {
+                if distance >= 1.0 {
+                    0.0
+                } else {
+                    1.0 - distance * distance
+                }
+            }
+            Neighborhood::Quartic => {
+                if distance >= 1.0 {
+                    0.0
+                } else {
+                    (1.0 - distance * distance).powi(2)
+                }
+            }
+            Neighborhood::Triweight => {
+                if distance >= 1.0 {
+                    0.0
+                } else {
+                    (1.0 - distance * distance).powi(3)
                 }
             }
         }
     }
-    /// Maximum search distance in the SOM. Not squared!
+    /// Maximum search distance in the SOM.
     pub fn radius(&self) -> f64 {
         match self {
             Neighborhood::Gauss => 3.0,
+            _ => 1.0,
         }
     }
 }
@@ -57,6 +90,10 @@ impl EnumFromString for Neighborhood {
     fn from_string(str: &str) -> Result<Neighborhood, ParseEnumError> {
         match str {
             "gauss" => Ok(Neighborhood::Gauss),
+            "triangular" => Ok(Neighborhood::Triangular),
+            "epanechnikov" => Ok(Neighborhood::Epanechnikov),
+            "quartic" => Ok(Neighborhood::Quartic),
+            "triweight" => Ok(Neighborhood::Triweight),
             _ => Err(ParseEnumError(format!(
                 "Not a neighborhood: {}. Must be one of (gauss|<todo>)",
                 str
