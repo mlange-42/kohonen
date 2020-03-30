@@ -11,11 +11,16 @@ fn main() {
     let parsed = CliParsed::from_cli(args);
     println!("{:#?}", parsed);
 
-    let proc = ProcessorBuilder::new(&parsed.layers, &parsed.preserve, &parsed.labels)
-        .with_delimiter(b';')
-        .with_no_data(&parsed.no_data)
-        .build_from_file(&parsed.file)
-        .unwrap();
+    let proc = ProcessorBuilder::new(
+        &parsed.layers,
+        &parsed.preserve,
+        &parsed.labels,
+        &parsed.label_length,
+    )
+    .with_delimiter(b';')
+    .with_no_data(&parsed.no_data)
+    .build_from_file(&parsed.file)
+    .unwrap();
 
     let mut som = proc.create_som(
         parsed.size.1,
@@ -50,8 +55,12 @@ fn main() {
     if let Some(views) = &mut viewers {
         while views.iter().fold(false, |a, v| a || v.is_open()) {
             let res = som.epoch(&proc.data(), None);
+            let label_data = match proc.labels() {
+                Some(lab) => Some((proc.data(), lab)),
+                None => None,
+            };
             for view in views.iter_mut() {
-                view.draw(&som);
+                view.draw(&som, label_data);
             }
             if res.is_none() {
                 if !done {

@@ -25,10 +25,13 @@ pub struct Cli {
     layers: Vec<String>,
     /// Columns to be preserved
     #[structopt(long)]
-    pub preserve: Vec<String>,
+    preserve: Vec<String>,
     /// Column to be used as label in visualization
     #[structopt(long)]
-    pub labels: Option<String>,
+    labels: Option<String>,
+    /// Maximum length of labels. Longer labels are truncated.
+    #[structopt(long = "label-length")]
+    label_length: Option<usize>,
     /// Layer weights list
     #[structopt(short, long)]
     weights: Vec<f64>,
@@ -73,6 +76,7 @@ pub struct CliParsed {
     pub layers: Vec<InputLayer>,
     pub preserve: Vec<String>,
     pub labels: Option<String>,
+    pub label_length: Option<usize>,
     pub alpha: DecayParam,
     pub radius: DecayParam,
     pub decay: DecayParam,
@@ -93,6 +97,7 @@ impl CliParsed {
             layers: Self::parse_layers(&mut cli),
             preserve: cli.preserve,
             labels: cli.labels,
+            label_length: cli.label_length,
             alpha: Self::parse_decay(cli.alpha, "alpha"),
             radius: Self::parse_decay(cli.radius, "radius"),
             decay: Self::parse_decay(cli.decay, "decay"),

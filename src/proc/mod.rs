@@ -109,15 +109,22 @@ pub struct ProcessorBuilder {
     input_layers: Vec<InputLayer>,
     preserve: Vec<String>,
     labels: Option<String>,
+    label_length: Option<usize>,
     csv_options: CsvOptions,
 }
 impl ProcessorBuilder {
     /// Creates a `ProcessorBuilder` for the given [`InputLayer`s](struct.InputLayer.html).
-    pub fn new(layers: &[InputLayer], preserve: &Vec<String>, label: &Option<String>) -> Self {
+    pub fn new(
+        layers: &[InputLayer],
+        preserve: &Vec<String>,
+        label: &Option<String>,
+        label_length: &Option<usize>,
+    ) -> Self {
         ProcessorBuilder {
             input_layers: layers.to_vec(),
             preserve: preserve.clone(),
             labels: label.clone(),
+            label_length: label_length.clone(),
             csv_options: CsvOptions {
                 delimiter: b',',
                 no_data: "NA".to_string(),
@@ -140,6 +147,7 @@ impl ProcessorBuilder {
             self.input_layers,
             self.preserve,
             self.labels,
+            self.label_length,
             path,
             &self.csv_options,
         )?;
@@ -168,10 +176,18 @@ impl Processor {
         input_layers: Vec<InputLayer>,
         preserve: Vec<String>,
         labels: Option<String>,
+        label_length: Option<usize>,
         path: &str,
         csv_options: &CsvOptions,
     ) -> Result<Self, Box<dyn Error>> {
-        Self::read_file(input_layers, preserve, labels, path, csv_options)
+        Self::read_file(
+            input_layers,
+            preserve,
+            labels,
+            label_length,
+            path,
+            csv_options,
+        )
     }
 
     /// Return a reference to the normalized data.
@@ -199,10 +215,18 @@ impl Processor {
         &self.scale
     }
 
+    pub fn labels(&self) -> Option<&[String]> {
+        match &self.labels {
+            Some(lab) => Some(&lab),
+            None => None,
+        }
+    }
+
     fn read_file(
         mut input_layers: Vec<InputLayer>,
         preserve_columns: Vec<String>,
         label_column: Option<String>,
+        label_length: Option<usize>,
         path: &str,
         csv_options: &CsvOptions,
     ) -> Result<Processor, Box<dyn Error>> {
@@ -330,7 +354,12 @@ impl Processor {
                 id_values[idx].push(id.to_string());
             }
             if let Some(col_idx) = &label_index {
-                let id = rec.get(*col_idx).unwrap();
+                let mut id = rec.get(*col_idx).unwrap();
+                if let Some(len) = label_length {
+                    if id.len() > len {
+                        id = &id[..len];
+                    }
+                }
                 labels.as_mut().unwrap().push(id.to_string());
             }
             let mut start = 0;
@@ -668,7 +697,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None)
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -701,7 +730,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None)
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -730,7 +759,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None)
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -761,7 +790,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None)
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -792,7 +821,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None)
+        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();

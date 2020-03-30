@@ -23,6 +23,6 @@ fn main() {
     let mut view = LayerView::new(win, &[0], &cols, None);
 
     while view.is_open() {
-        view.draw(&som);
+        view.draw(&som, None);
     }
 }

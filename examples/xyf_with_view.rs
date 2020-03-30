@@ -65,7 +65,7 @@ fn run_xyf(graphics: bool) {
         while win.is_open() || viewer.as_ref().unwrap().is_open() {
             som.epoch(&data, None);
 
-            viewer.as_mut().unwrap().draw(&som);
+            viewer.as_mut().unwrap().draw(&som, None);
 
             win.draw(|b| {
                 let root = b.into_drawing_area();

@@ -26,6 +26,7 @@ fn main() {
         &layers,
         &vec!["Country".to_string(), "code".to_string()],
         &Some("Country".to_string()),
+        &Some(12),
     )
     .with_delimiter(b';')
     .with_no_data("-")
@@ -52,7 +53,7 @@ fn main() {
 
     while view_x.is_open() {
         som.epoch(proc.data(), None);
-        view_x.draw(&som);
+        view_x.draw(&som, None);
     }
 
     let units_file = "example_data/countries-units.csv";
