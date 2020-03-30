@@ -26,6 +26,9 @@ pub struct Cli {
     /// Columns to be preserved
     #[structopt(long)]
     pub preserve: Vec<String>,
+    /// Column to be used as label in visualization
+    #[structopt(long)]
+    pub labels: Option<String>,
     /// Layer weights list
     #[structopt(short, long)]
     weights: Vec<f64>,
@@ -69,6 +72,7 @@ pub struct CliParsed {
     pub episodes: u32,
     pub layers: Vec<InputLayer>,
     pub preserve: Vec<String>,
+    pub labels: Option<String>,
     pub alpha: DecayParam,
     pub radius: DecayParam,
     pub decay: DecayParam,
@@ -88,6 +92,7 @@ impl CliParsed {
             episodes: cli.episodes,
             layers: Self::parse_layers(&mut cli),
             preserve: cli.preserve,
+            labels: cli.labels,
             alpha: Self::parse_decay(cli.alpha, "alpha"),
             radius: Self::parse_decay(cli.radius, "radius"),
             decay: Self::parse_decay(cli.decay, "decay"),

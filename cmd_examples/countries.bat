@@ -4,6 +4,7 @@
 --episodes 5000 ^
 --layers "child_mort_2010 birth_p_1000 GNI LifeExpectancy PopGrowth PopUrbanized PopGrowthUrb AdultLiteracy PrimSchool Income_low_40 Income_high_20" "continent" ^
 --preserve Country code ^
+--labels Country ^
 --categ 0 1 ^
 --norm gauss none ^
 --weights 1 1 ^

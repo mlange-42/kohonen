@@ -11,7 +11,7 @@ fn main() {
     let parsed = CliParsed::from_cli(args);
     println!("{:#?}", parsed);
 
-    let proc = ProcessorBuilder::new(&parsed.layers, &parsed.preserve)
+    let proc = ProcessorBuilder::new(&parsed.layers, &parsed.preserve, &parsed.labels)
         .with_delimiter(b';')
         .with_no_data(&parsed.no_data)
         .build_from_file(&parsed.file)
