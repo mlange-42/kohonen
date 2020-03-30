@@ -452,13 +452,13 @@ mod test {
         let decay = DecayParam::lin(1.0, 0.1);
 
         assert!((decay.get(0, 100) - 1.0).abs() < 0.0001);
-        assert!((decay.get(100, 100) - 0.1).abs() < 0.0001);
+        assert!((decay.get(99, 100) - 0.1).abs() < 0.0001);
     }
     #[test]
     fn exponential_decay() {
         let decay = DecayParam::exp(1.0, 0.01);
 
         assert!((decay.get(0, 100) - 1.0).abs() < 0.0001);
-        assert!((decay.get(100, 100) - 0.01).abs() < 0.0001);
+        assert!((decay.get(99, 100) - 0.01).abs() < 0.0001);
     }
 }
