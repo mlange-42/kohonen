@@ -6,7 +6,7 @@
 --labels species ^
 --categ false true ^
 --norm gauss none ^
---weights 1 1 ^
+--weights 1 0.5 ^
 --alpha 0.2 0.01 lin ^
 --radius 8 0.7 lin ^
 --decay 0.2 0.001 exp ^

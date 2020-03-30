@@ -209,7 +209,7 @@ pub struct Som {
     params: SomParams,
     epoch: u32,
     #[serde(skip_serializing)]
-    distances_sq: DataFrame,
+    distances_matrix: DataFrame,
 }
 
 #[allow(dead_code)]
@@ -221,7 +221,7 @@ impl Som {
             nrows,
             ncols,
             weights: DataFrame::filled(nrows * ncols, names, 0.0),
-            distances_sq: Self::calc_distance_matix(nrows, ncols),
+            distances_matrix: Self::calc_distance_matix(nrows, ncols),
             params,
             epoch: 0,
         };
@@ -247,7 +247,7 @@ impl Som {
 
     /// Pre-calculates the unit-to-unit distance matrix.
     fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame {
-        let metric = Metric::SqEuclidean;
+        let metric = Metric::Euclidean;
         let mut df = DataFrame::filled(nrows * ncols, &vec![""; nrows * ncols], 0.0);
         for r1 in 0..nrows {
             for c1 in 0..ncols {
@@ -352,10 +352,10 @@ impl Som {
         let alpha = self.params.alpha.get(self.epoch, self.params.epochs);
         let radius = self.params.radius.get(self.epoch, self.params.epochs);
         let neigh = &self.params.neighborhood;
-        let radius_inf_sq = (1.0 / radius).powi(2);
+        let radius_inv = 1.0 / radius;
         let search_rad = radius * neigh.radius();
         let search_rad_i = search_rad.floor() as i32;
-        let search_rad_sq = search_rad.powi(2);
+        //let search_rad_sq = search_rad.powi(2);
 
         let r_min = cmp::max(0, row as i32 - search_rad_i);
         let r_max = cmp::min(self.nrows as i32 - 1, row as i32 + search_rad_i);
@@ -365,9 +365,9 @@ impl Som {
         for r in r_min..=r_max {
             for c in c_min..=c_max {
                 let index = self.to_index(r, c);
-                let dist_sq = *self.distances_sq.get(nearest, index) as f64;
-                if dist_sq <= search_rad_sq {
-                    let weight = neigh.weight(radius_inf_sq * dist_sq);
+                let dist = *self.distances_matrix.get(nearest, index) as f64;
+                if dist <= search_rad {
+                    let weight = neigh.weight(radius_inv * dist);
                     for i in 0..self.dims {
                         let smp = sample[i];
                         if !smp.is_nan() {
@@ -399,7 +399,7 @@ mod test {
             DecayParam::lin(0.2, 0.001),
         );
         let som = Som::new(&["A", "B", "C"], 3, 3, params);
-        assert_eq!(som.distances_sq.get(0, 8), &8.0);
+        assert_eq!(som.distances_matrix.get(0, 8), &8.0_f64.sqrt());
     }
 
     #[test]

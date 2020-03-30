@@ -57,7 +57,7 @@ pub struct Cli {
     /// Weight decay: start, end, type (lin|exp)
     #[structopt(short, long, number_of_values = 3)]
     decay: Vec<String>,
-    /// Neighborhood function (gauss|<todo>). Optional, default 'gauss'.
+    /// Neighborhood function (gauss|triangular|epanechnikov|quartic|triweight). Optional, default 'gauss'.
     #[structopt(short = "-g", long)]
     neigh: Option<String>,
     /// Disable GUI
