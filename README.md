@@ -12,7 +12,7 @@ _Warning:_ This project is in a very experimental state.
 
 ### Installation
 
-* Download the [latest binaries](../../releases/latest).
+* Download the [latest binaries](https://github.com/mlange-42/kohonen/releases/latest).
 * Unzip somewhere with write privileges (only required for running examples in place).
 
 ### Usage
