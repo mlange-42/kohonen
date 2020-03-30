@@ -1,5 +1,6 @@
 //! Pre- and post-processing of SOM training data, SOM creation.
 
+use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn::nearest_neighbor_xyf;
 use crate::calc::norm::{denormalize_columns, normalize, LinearTransform, Norm};
@@ -18,6 +19,7 @@ pub struct InputLayer {
     num_columns: Option<usize>,
     weight: f64,
     is_class: bool,
+    metric: Metric,
     norm: Norm,
     scale: f64,
 }
@@ -28,6 +30,7 @@ impl InputLayer {
         names: &[&str],
         weight: f64,
         is_class: bool,
+        metric: Metric,
         norm: Norm,
         scale: Option<f64>,
     ) -> Self {
@@ -39,6 +42,7 @@ impl InputLayer {
             num_columns: None,
             weight,
             is_class,
+            metric,
             norm,
             scale: scale.unwrap_or(1.0),
         }
@@ -52,6 +56,7 @@ impl InputLayer {
             num_columns: None,
             weight,
             is_class: true,
+            metric: Metric::Tanimoto,
             norm: Norm::None,
             scale: 1.0,
         }
@@ -65,6 +70,7 @@ impl InputLayer {
             num_columns: None,
             weight: 1.0,
             is_class: true,
+            metric: Metric::Tanimoto,
             norm: Norm::None,
             scale: 1.0,
         }
@@ -78,6 +84,7 @@ impl InputLayer {
             num_columns: None,
             weight,
             is_class: false,
+            metric: Metric::Euclidean,
             norm,
             scale: scale.unwrap_or(1.0),
         }
@@ -91,6 +98,7 @@ impl InputLayer {
             num_columns: None,
             weight: 1.0,
             is_class: false,
+            metric: Metric::Euclidean,
             norm: Norm::Gauss,
             scale: 1.0,
         }
@@ -249,7 +257,7 @@ impl Processor {
                         header
                             .iter()
                             .position(|n2| n2 == n)
-                            .expect(&format!("Volumn '{}' not found.", n))
+                            .expect(&format!("Column '{}' not found.", n))
                     })
                     .collect(),
             );
@@ -304,6 +312,7 @@ impl Processor {
                 lay.num_columns.unwrap(),
                 weight_scale * lay.weight,
                 lay.is_class,
+                lay.metric.clone(),
             ));
             if lay.is_class {
                 let base = lay.names[0].clone() + ":";

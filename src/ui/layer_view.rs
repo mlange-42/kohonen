@@ -216,7 +216,7 @@ impl LayerView {
 
         let ranges = som.weights().ranges();
 
-        let color_map = LinearColorMap::new(&[&GREEN, &YELLOW, &RED]);
+        let color_map = LinearColorMap::new(&[&RED, &YELLOW, &GREEN]);
         let names = &self.names;
         let test_style =
             TextStyle::from(("sans-serif", 14).into_font()).pos(Pos::new(HPos::Left, VPos::Bottom));

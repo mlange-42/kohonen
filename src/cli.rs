@@ -1,4 +1,5 @@
 //! Command-line interface for SOMs.
+use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::norm::Norm;
 use crate::map::som::{DecayFunction, DecayParam};
@@ -38,6 +39,9 @@ pub struct Cli {
     /// Are layers categorical list (0/1). Default 1.
     #[structopt(short, long)]
     categ: Vec<i32>,
+    /// Distance metric per layer. Default euclidean for non-categorical, tanimoto for categorical.
+    #[structopt(long)]
+    metric: Vec<String>,
     /// Normalizer per layer list (gauss, unit, none). Default gauss.
     #[structopt(short, long)]
     norm: Vec<String>,
@@ -147,6 +151,9 @@ impl CliParsed {
         if cli.categ.len() != 0 && cli.categ.len() != n_layers {
             panic!("Expected no categorical 0/1, or as many as layers (option --weights)");
         }
+        if cli.metric.len() != 0 && cli.metric.len() != n_layers {
+            panic!("Expected no metric, or as many as layers (option --metric)");
+        }
         if cli.norm.len() != 0 && cli.norm.len() != n_layers {
             panic!("Expected no normalizers, or as many as layers (option --norm)");
         }
@@ -158,19 +165,44 @@ impl CliParsed {
             cli.categ = vec![0; n_layers];
         }
         if cli.norm.is_empty() {
-            cli.norm = vec!["gauss".to_string(); n_layers];
+            cli.norm = cli
+                .categ
+                .iter()
+                .map(|c| {
+                    if c > &0 {
+                        "none".to_string()
+                    } else {
+                        "gauss".to_string()
+                    }
+                })
+                .collect();
+        }
+        if cli.metric.is_empty() {
+            cli.metric = cli
+                .categ
+                .iter()
+                .map(|c| {
+                    if c > &0 {
+                        "tanimoto".to_string()
+                    } else {
+                        "euclidean".to_string()
+                    }
+                })
+                .collect();
         }
 
         cli.layers
             .iter()
             .zip(&cli.weights)
             .zip(&cli.categ)
+            .zip(&cli.metric)
             .zip(&cli.norm)
-            .map(|(((lay, wt), cat), norm)| {
+            .map(|((((lay, wt), cat), metr), norm)| {
                 InputLayer::new(
                     &lay.trim().split(' ').map(|s| &*s).collect::<Vec<_>>(),
                     *wt,
                     *cat > 0,
+                    Metric::from_string(metr).unwrap(),
                     Norm::from_string(norm).unwrap(),
                     None,
                 )
