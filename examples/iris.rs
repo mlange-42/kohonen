@@ -10,7 +10,7 @@ fn main() {
         InputLayer::cat_simple("species"),
     ];
 
-    let proc = ProcessorBuilder::new(&layers, &vec![])
+    let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
         .with_delimiter(b';')
         .build_from_file("example_data/iris.csv")
         .unwrap();
@@ -18,7 +18,7 @@ fn main() {
     let mut som = proc.create_som(
         16,
         20,
-        5000,
+        100,
         Neighborhood::Gauss,
         DecayParam::lin(0.2, 0.01),
         DecayParam::lin(8.0, 0.5),
@@ -42,7 +42,7 @@ fn main() {
 
     while view_x.is_open() || view_y.is_open() {
         som.epoch(proc.data(), None);
-        view_x.draw(&som);
-        view_y.draw(&som);
+        view_x.draw(&som, None);
+        view_y.draw(&som, None);
     }
 }

@@ -2,15 +2,15 @@
 
 use crate::data::DataFrame;
 
-use crate::calc::metric::{EuclideanMetric, Metric, SqEuclideanMetric, TanimotoMetric};
+use crate::calc::metric::Metric;
 use crate::map::som::Layer;
 
 #[allow(dead_code)]
-const EUCLIDEAN: EuclideanMetric = EuclideanMetric();
+const EUCLIDEAN: Metric = Metric::Euclidean;
 #[allow(dead_code)]
-const EUCLIDEAN_SQ: SqEuclideanMetric = SqEuclideanMetric();
+const EUCLIDEAN_SQ: Metric = Metric::SqEuclidean;
 #[allow(dead_code)]
-const TANIMOTO: TanimotoMetric = TanimotoMetric();
+const TANIMOTO: Metric = Metric::Tanimoto;
 
 /// Nearest-neighbor by Euclidean distance.
 /// Dimensions with `NA` values are ignored.
@@ -77,11 +77,13 @@ pub fn distance_xyf(from: &[f64], to: &[f64], layers: &[Layer], min_so_far: f64)
     let mut dist = 0.0;
     for layer in layers {
         let end = start + layer.ncols();
+        let d = layer.metric().distance(&from[start..end], &to[start..end]);
+        /*
         let d = if layer.categorical() {
             TANIMOTO.distance(&from[start..end], &to[start..end])
         } else {
             EUCLIDEAN.distance(&from[start..end], &to[start..end])
-        };
+        };*/
         if !d.is_nan() {
             dist += d * layer.weight();
         }

@@ -15,7 +15,7 @@ fn main() {
 fn run_som(graphics: bool) {
     let cols = ["A", "B"];
     let params = SomParams::simple(
-        1000,
+        100,
         Neighborhood::Gauss,
         DecayParam::lin(0.1, 0.01),
         DecayParam::lin(10.0, 0.6),

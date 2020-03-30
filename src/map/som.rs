@@ -1,6 +1,6 @@
 //! Super-SOM for flexible use as unsupervised or supervised SOM. Core types.
 
-use crate::calc::metric::{Metric, SqEuclideanMetric};
+use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
 use crate::data::DataFrame;
@@ -90,23 +90,25 @@ pub struct Layer {
     ncols: usize,
     weight: f64,
     categorical: bool,
+    metric: Metric,
 }
 impl Layer {
     /// Creates a new layer.
-    pub fn new(ncols: usize, weight: f64, categorical: bool) -> Self {
+    pub fn new(ncols: usize, weight: f64, categorical: bool, metric: Metric) -> Self {
         Layer {
             ncols,
             weight,
             categorical,
+            metric,
         }
     }
     /// Creates a new continuous layer.
     pub fn cont(ncols: usize, weight: f64) -> Self {
-        Self::new(ncols, weight, false)
+        Self::new(ncols, weight, false, Metric::Euclidean)
     }
     /// Creates a new categorical layer.
     pub fn cat(ncols: usize, weight: f64) -> Self {
-        Self::new(ncols, weight, true)
+        Self::new(ncols, weight, true, Metric::Tanimoto)
     }
     /// The number of data columns of the layer.
     pub fn ncols(&self) -> usize {
@@ -119,6 +121,10 @@ impl Layer {
     /// If the layer is categorical.
     pub fn categorical(&self) -> bool {
         self.categorical
+    }
+    /// The layer's distance metric.
+    pub fn metric(&self) -> &Metric {
+        &self.metric
     }
 }
 
@@ -177,15 +183,15 @@ impl DecayParam {
             function: DecayFunction::Exponential,
         }
     }
-    /// Get the parameter's value for the given training episode.
+    /// Get the parameter's value for the given training epoch.
     pub fn get(&self, epoch: u32, max_epochs: u32) -> f64 {
         match self.function {
             DecayFunction::Linear => {
-                let frac = epoch as f64 / max_epochs as f64;
+                let frac = epoch as f64 / (max_epochs - 1) as f64;
                 self.start + frac * (self.end - self.start)
             }
             DecayFunction::Exponential => {
-                let rate = (1.0 / -(max_epochs as f64)) * (self.end / self.start).ln();
+                let rate = (1.0 / -((max_epochs - 1) as f64)) * (self.end / self.start).ln();
                 self.start * (-rate * epoch as f64).exp()
             }
         }
@@ -203,7 +209,7 @@ pub struct Som {
     params: SomParams,
     epoch: u32,
     #[serde(skip_serializing)]
-    distances_sq: DataFrame,
+    distances_matrix: DataFrame,
 }
 
 #[allow(dead_code)]
@@ -215,7 +221,7 @@ impl Som {
             nrows,
             ncols,
             weights: DataFrame::filled(nrows * ncols, names, 0.0),
-            distances_sq: Self::calc_distance_matix(nrows, ncols),
+            distances_matrix: Self::calc_distance_matix(nrows, ncols),
             params,
             epoch: 0,
         };
@@ -241,7 +247,7 @@ impl Som {
 
     /// Pre-calculates the unit-to-unit distance matrix.
     fn calc_distance_matix(nrows: usize, ncols: usize) -> DataFrame {
-        let metric = SqEuclideanMetric();
+        let metric = Metric::Euclidean;
         let mut df = DataFrame::filled(nrows * ncols, &vec![""; nrows * ncols], 0.0);
         for r1 in 0..nrows {
             for c1 in 0..ncols {
@@ -346,10 +352,10 @@ impl Som {
         let alpha = self.params.alpha.get(self.epoch, self.params.epochs);
         let radius = self.params.radius.get(self.epoch, self.params.epochs);
         let neigh = &self.params.neighborhood;
-        let radius_inf_sq = (1.0 / radius).powi(2);
+        let radius_inv = 1.0 / radius;
         let search_rad = radius * neigh.radius();
         let search_rad_i = search_rad.floor() as i32;
-        let search_rad_sq = search_rad.powi(2);
+        //let search_rad_sq = search_rad.powi(2);
 
         let r_min = cmp::max(0, row as i32 - search_rad_i);
         let r_max = cmp::min(self.nrows as i32 - 1, row as i32 + search_rad_i);
@@ -359,9 +365,9 @@ impl Som {
         for r in r_min..=r_max {
             for c in c_min..=c_max {
                 let index = self.to_index(r, c);
-                let dist_sq = *self.distances_sq.get(nearest, index) as f64;
-                if dist_sq <= search_rad_sq {
-                    let weight = neigh.weight(radius_inf_sq * dist_sq);
+                let dist = *self.distances_matrix.get(nearest, index) as f64;
+                if dist <= search_rad {
+                    let weight = neigh.weight(radius_inv * dist);
                     for i in 0..self.dims {
                         let smp = sample[i];
                         if !smp.is_nan() {
@@ -393,7 +399,7 @@ mod test {
             DecayParam::lin(0.2, 0.001),
         );
         let som = Som::new(&["A", "B", "C"], 3, 3, params);
-        assert_eq!(som.distances_sq.get(0, 8), &8.0);
+        assert_eq!(som.distances_matrix.get(0, 8), &8.0_f64.sqrt());
     }
 
     #[test]
@@ -446,13 +452,13 @@ mod test {
         let decay = DecayParam::lin(1.0, 0.1);
 
         assert!((decay.get(0, 100) - 1.0).abs() < 0.0001);
-        assert!((decay.get(100, 100) - 0.1).abs() < 0.0001);
+        assert!((decay.get(99, 100) - 0.1).abs() < 0.0001);
     }
     #[test]
     fn exponential_decay() {
         let decay = DecayParam::exp(1.0, 0.01);
 
         assert!((decay.get(0, 100) - 1.0).abs() < 0.0001);
-        assert!((decay.get(100, 100) - 0.01).abs() < 0.0001);
+        assert!((decay.get(99, 100) - 0.01).abs() < 0.0001);
     }
 }
