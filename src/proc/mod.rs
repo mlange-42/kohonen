@@ -23,6 +23,7 @@ pub struct InputLayer {
 }
 
 impl InputLayer {
+    /// Creates a new input layer definition.
     pub fn new(
         names: &[&str],
         weight: f64,
@@ -42,6 +43,8 @@ impl InputLayer {
             scale: scale.unwrap_or(1.0),
         }
     }
+
+    /// Creates a new categorical input layer definition.
     pub fn cat(name: &str, weight: f64) -> Self {
         InputLayer {
             names: vec![name.to_string()],
@@ -53,6 +56,8 @@ impl InputLayer {
             scale: 1.0,
         }
     }
+
+    /// Creates a new categorical input layer definition with default weight.
     pub fn cat_simple(name: &str) -> Self {
         InputLayer {
             names: vec![name.to_string()],
@@ -64,6 +69,8 @@ impl InputLayer {
             scale: 1.0,
         }
     }
+
+    /// Creates a new continuous / non-categorical input layer definition.
     pub fn cont(names: &[&str], weight: f64, norm: Norm, scale: Option<f64>) -> Self {
         InputLayer {
             names: names.iter().map(|x| (&**x).to_string()).collect(),
@@ -75,6 +82,8 @@ impl InputLayer {
             scale: scale.unwrap_or(1.0),
         }
     }
+
+    /// Creates a new continuous / non-categorical input layer definition with default weight and Gaussian normalization.
     pub fn cont_simple(names: &[&str]) -> Self {
         InputLayer {
             names: names.iter().map(|x| (&**x).to_string()).collect(),
@@ -88,12 +97,14 @@ impl InputLayer {
     }
 }
 
+/// Csv file options
 #[derive(Clone, Debug)]
 pub struct CsvOptions {
     delimiter: u8,
     no_data: String,
 }
 
+/// Builder for ['Processor'](struct.Processor.html).
 pub struct ProcessorBuilder {
     input_layers: Vec<InputLayer>,
     preserve: Vec<String>,
@@ -128,6 +139,7 @@ impl ProcessorBuilder {
     }
 }
 
+/// Central type for SOM setup and processing.
 #[allow(dead_code)]
 pub struct Processor {
     input_layers: Vec<InputLayer>,
@@ -151,22 +163,27 @@ impl Processor {
         Self::read_file(input_layers, preserve, path, csv_options)
     }
 
-    /// The normalized data.
+    /// Return a reference to the normalized data.
     pub fn data(&self) -> &DataFrame {
         &self.data
     }
+    /// Return a reference to SOM layer definitions.
     pub fn layers(&self) -> &[Layer] {
         &self.layers
     }
+    /// Return a reference to input layer definitions.
     pub fn input_layers(&self) -> &[InputLayer] {
         &self.input_layers
     }
+    /// Return a reference to the applied normalizers.
     pub fn norm(&self) -> &[Norm] {
         &self.norm
     }
+    /// Return a reference to the transforms for de-normalization.
     pub fn denorm(&self) -> &[LinearTransform] {
         &self.denorm
     }
+    /// Return a reference the applies scalings (not used so far).
     pub fn scale(&self) -> &[f64] {
         &self.scale
     }
@@ -505,6 +522,10 @@ impl Processor {
         Ok(())
     }
 
+    /// Finds the nearest unit in the SOM for each row in `data`.
+    ///
+    /// # Returns
+    /// A vector of (unit index, distance).
     pub fn nearest_unit(&self, som: &Som, data: &DataFrame) -> Vec<(usize, f64)> {
         assert_eq!(som.weights().names(), data.names());
 
@@ -513,6 +534,7 @@ impl Processor {
             .collect()
     }
 
+    /// Writes `data`, amended by the nearest SOM unit index, row and column, to a CSV file.
     pub fn write_data_nearest(
         &self,
         som: &Som,

@@ -3,6 +3,7 @@ use crate::calc::neighborhood::Neighborhood;
 use crate::calc::norm::Norm;
 use crate::map::som::{DecayFunction, DecayParam};
 use crate::proc::InputLayer;
+use crate::EnumFromString;
 use structopt::StructOpt;
 
 /// Raw command line arguments.

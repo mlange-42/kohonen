@@ -4,7 +4,7 @@ use crate::calc::metric::{Metric, SqEuclideanMetric};
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
 use crate::data::DataFrame;
-use crate::ParseEnumError;
+use crate::{EnumFromString, ParseEnumError};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cmp;
@@ -67,6 +67,8 @@ impl SomParams {
     pub fn layers(&self) -> &[Layer] {
         &self.layers
     }
+
+    /// Returns a list of the first column index for each layer.
     pub fn start_columns(&self) -> &[usize] {
         &self.start_columns
     }
@@ -128,8 +130,11 @@ pub enum DecayFunction {
     /// Exponential decay
     Exponential,
 }
-impl DecayFunction {
-    pub fn from_string(str: &str) -> Result<DecayFunction, ParseEnumError> {
+impl EnumFromString for DecayFunction {
+    /// Parse a string to a `DecayFunction`.
+    ///
+    /// Accepts `"lin" | "exp"`.
+    fn from_string(str: &str) -> Result<DecayFunction, ParseEnumError> {
         match str {
             "lin" => Ok(DecayFunction::Linear),
             "exp" => Ok(DecayFunction::Exponential),

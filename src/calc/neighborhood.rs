@@ -1,16 +1,19 @@
 //! Neighborhoods (i.e. kernels), for effect on nearby SOM-units.
 
-use crate::ParseEnumError;
+use crate::{EnumFromString, ParseEnumError};
 use serde::{Deserialize, Serialize};
 
-/// Neighborhoods.
+/// Neighborhoods: 4 or 8 neighbors.
 #[derive(Debug, Clone)]
 pub enum Neighbors {
     Neighbors4,
     Neighbors8,
 }
-impl Neighbors {
-    pub fn from_string(str: &str) -> Result<Neighbors, ParseEnumError> {
+impl EnumFromString for Neighbors {
+    /// Parse a string to a `Neighbors`.
+    ///
+    /// Accepts `"4" | "n4" | "N4" | "Neighbors4" | "8" | "n8" | "N8" | "Neighbors8"`.
+    fn from_string(str: &str) -> Result<Neighbors, ParseEnumError> {
         match str {
             "4" | "n4" | "N4" | "Neighbors4" => Ok(Neighbors::Neighbors4),
             "8" | "n8" | "N8" | "Neighbors8" => Ok(Neighbors::Neighbors8),
@@ -22,7 +25,7 @@ impl Neighbors {
     }
 }
 
-/// Neighborhoods.
+/// Neighborhood functions / kernels.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Neighborhood {
     Gauss,
@@ -46,7 +49,12 @@ impl Neighborhood {
             Neighborhood::Gauss => 3.0,
         }
     }
-    pub fn from_string(str: &str) -> Result<Neighborhood, ParseEnumError> {
+}
+impl EnumFromString for Neighborhood {
+    /// Parse a string to a `Neighborhood`.
+    ///
+    /// Accepts `"gauss" | <TODO>`.
+    fn from_string(str: &str) -> Result<Neighborhood, ParseEnumError> {
         match str {
             "gauss" => Ok(Neighborhood::Gauss),
             _ => Err(ParseEnumError(format!(
@@ -57,32 +65,6 @@ impl Neighborhood {
     }
 }
 
-/*
-/// Trait for neighborhoods.
-pub trait Neighborhood: Debug + Copy {
-    /// Calculates the weight, depending on the squared(!) distance.
-    fn weight(&self, distance_sq: f64) -> f64;
-    /// Maximum search distance in the SOM. Not squared!
-    fn radius(&self) -> f64;
-}
-
-/// Gaussian (normal) neighborhood.
-#[derive(Debug, Copy)]
-pub struct GaussNeighborhood();
-
-impl Neighborhood for GaussNeighborhood {
-    fn weight(&self, distance_sq: f64) -> f64 {
-        if distance_sq == 0.0 {
-            1.0
-        } else {
-            (-0.5 * distance_sq).exp()
-        }
-    }
-    fn radius(&self) -> f64 {
-        3.0
-    }
-}
-*/
 #[cfg(test)]
 mod test {
     use crate::calc::neighborhood::Neighborhood;

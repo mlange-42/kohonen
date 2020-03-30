@@ -13,7 +13,7 @@ const EUCLIDEAN_SQ: SqEuclideanMetric = SqEuclideanMetric();
 const TANIMOTO: TanimotoMetric = TanimotoMetric();
 
 /// Nearest-neighbor by Euclidean distance.
-/// Dimensions with NA values are ignored.
+/// Dimensions with `NA` values are ignored.
 /// # Returns
 /// (index, distance)
 pub fn nearest_neighbor(from: &[f64], to: &DataFrame) -> (usize, f64) {
@@ -32,7 +32,7 @@ pub fn nearest_neighbor(from: &[f64], to: &DataFrame) -> (usize, f64) {
 }
 
 /// Nearest-neighbor by Tanimoto distance.
-/// Dimensions with NA values are ignored.
+/// Dimensions with `NA` values are ignored.
 /// # Returns
 /// (index, distance)
 pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame) -> (usize, f64) {
@@ -51,7 +51,7 @@ pub fn nearest_neighbor_tanimoto(from: &[f64], to: &DataFrame) -> (usize, f64) {
 }
 
 /// Nearest-neighbor for XYF-maps. Layers determine distance metrics and weighting.
-/// Dimensions with NA values are ignored.
+/// Dimensions with `NA` values are ignored.
 /// # Returns
 /// (index, weighted-distance)
 pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame, layers: &[Layer]) -> (usize, f64) {
@@ -70,6 +70,8 @@ pub fn nearest_neighbor_xyf(from: &[f64], to: &DataFrame, layers: &[Layer]) -> (
     (min_idx, min_dist)
 }
 
+/// Calculates distance for potential multi-layered data / SOMs.
+/// Stops calculation and returns `f64::MAX` as soon as `min_so_far` is exceeded (for performance).
 pub fn distance_xyf(from: &[f64], to: &[f64], layers: &[Layer], min_so_far: f64) -> f64 {
     let mut start = 0_usize;
     let mut dist = 0.0;
