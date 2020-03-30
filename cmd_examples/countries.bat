@@ -6,7 +6,7 @@
 --preserve Country code ^
 --labels Country ^
 --label-length 10 ^
---categ 0 1 ^
+--categ false true ^
 --norm gauss none ^
 --weights 1 0.25 ^
 --alpha 0.2 0.01 lin ^

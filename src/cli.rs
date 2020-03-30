@@ -18,34 +18,34 @@ pub struct Cli {
     /// SOM size: width, height.
     #[structopt(short, long, number_of_values = 2)]
     size: Vec<usize>,
-    /// Number of training episodes
+    /// Number of training episodes.
     #[structopt(short, long)]
     episodes: u32,
     /// Layer columns. Put layers in quotes: `"X1 X2 X3" "Y1"`
     #[structopt(short, long)]
     layers: Vec<String>,
-    /// Columns to be preserved
+    /// Columns to be preserved for output (e.g. item id). Optional, default: none.
     #[structopt(long)]
     preserve: Vec<String>,
-    /// Column to be used as label in visualization
+    /// Column to be used as label in visualization. Optional, default: none.
     #[structopt(long)]
     labels: Option<String>,
-    /// Maximum length of labels. Longer labels are truncated.
+    /// Maximum length of labels. Longer labels are truncated. Optional, default: no limit.
     #[structopt(long = "label-length")]
     label_length: Option<usize>,
-    /// Number of labels to show; random sample size.
+    /// Number of labels to show; random sample size. Optional, default: all.
     #[structopt(long = "label-samples")]
     label_samples: Option<usize>,
-    /// Layer weights list
+    /// Layer weights list. Optional, default: '1.0 1.0 ...'
     #[structopt(short, long)]
     weights: Vec<f64>,
-    /// Are layers categorical list (0/1). Default 1.
+    /// Are layers categorical list (true/false). Optional, default: 'false false ...'
     #[structopt(short, long)]
-    categ: Vec<i32>,
-    /// Distance metric per layer. Default euclidean for non-categorical, tanimoto for categorical.
+    categ: Vec<bool>,
+    /// Distance metric per layer. Optional, default: 'euclidean' for non-categorical, 'tanimoto' for categorical.
     #[structopt(long)]
     metric: Vec<String>,
-    /// Normalizer per layer list (gauss, unit, none). Default gauss.
+    /// Normalizer per layer list (gauss, unit, none). Optional, default: 'gauss' for non-categorical, 'none' for categorical.
     #[structopt(short, long)]
     norm: Vec<String>,
     /// Learning rate: start, end, type (lin|exp)
@@ -57,19 +57,19 @@ pub struct Cli {
     /// Weight decay: start, end, type (lin|exp)
     #[structopt(short, long, number_of_values = 3)]
     decay: Vec<String>,
-    /// Neighborhood function (gauss|<todo>)
+    /// Neighborhood function (gauss|<todo>). Optional, default 'gauss'.
     #[structopt(short = "-g", long)]
     neigh: Option<String>,
     /// Disable GUI
     #[structopt(long = "--no-gui")]
     nogui: bool,
-    /// Maximum GUI update frequency in frames per second. Default 2.0
+    /// Maximum GUI update frequency in frames per second. Optional, default: '2.0'
     #[structopt(long = "--fps")]
     fps: Option<f64>,
-    /// No-data value. Default 'NA'.
+    /// No-data value. Optional, default 'NA'.
     #[structopt(long = "--no-data")]
     no_data: Option<String>,
-    /// Output base path, with base file name.
+    /// Output base path, with base file name. Optional, default: no file output.
     #[structopt(short, long)]
     output: Option<String>,
 }
@@ -167,14 +167,14 @@ impl CliParsed {
             cli.weights = vec![1.0; n_layers];
         }
         if cli.categ.is_empty() {
-            cli.categ = vec![0; n_layers];
+            cli.categ = vec![false; n_layers];
         }
         if cli.norm.is_empty() {
             cli.norm = cli
                 .categ
                 .iter()
                 .map(|c| {
-                    if c > &0 {
+                    if *c {
                         "none".to_string()
                     } else {
                         "gauss".to_string()
@@ -187,7 +187,7 @@ impl CliParsed {
                 .categ
                 .iter()
                 .map(|c| {
-                    if c > &0 {
+                    if *c {
                         "tanimoto".to_string()
                     } else {
                         "euclidean".to_string()
@@ -206,7 +206,7 @@ impl CliParsed {
                 InputLayer::new(
                     &lay.trim().split(' ').map(|s| &*s).collect::<Vec<_>>(),
                     *wt,
-                    *cat > 0,
+                    *cat,
                     Metric::from_string(metr).unwrap(),
                     Norm::from_string(norm).unwrap(),
                     None,

@@ -3,7 +3,7 @@
 --size 20 16 ^
 --episodes 2500 ^
 --layers "sepal_length sepal_width petal_length petal_width" "species" ^
---categ 0 1 ^
+--categ false true ^
 --norm gauss none ^
 --weights 1 1 ^
 --alpha 0.2 0.01 lin ^
