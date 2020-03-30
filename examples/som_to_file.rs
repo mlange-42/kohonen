@@ -1,10 +1,6 @@
 use kohonen::calc::neighborhood::Neighborhood;
-use kohonen::calc::norm::LinearTransform;
-use kohonen::map::som::{DecayParam, Som};
+use kohonen::map::som::DecayParam;
 use kohonen::proc::{InputLayer, ProcessorBuilder};
-use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::Write;
 
 fn main() {
     let layers = vec![
@@ -36,7 +32,7 @@ fn main() {
     .build_from_file("example_data/countries.csv")
     .unwrap();
 
-    let som = proc.create_som(
+    let _som = proc.create_som(
         16,
         20,
         1000,
