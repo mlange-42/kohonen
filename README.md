@@ -12,12 +12,12 @@ _Warning:_ This project is in a very experimental state.
 
 ### Installation
 
-* Download the [latest binaries](https://github.com/mlange-42/kohonen/releases/latest).
+* Download the [latest binaries](https://github.com/mlange-42/kohonen/releases).
 * Unzip somewhere with write privileges (only required for running examples in place).
 
 ### Usage
 
-* Try the examples in sub-directory `cmd_examples`.
+* Try the examples in sub-directory [`/cmd_examples`](https://github.com/mlange-42/chrono-photo/tree/master/cmd_examples).
 * To view the full list of options, run `kohonen --help`
 
 ## Library / crate

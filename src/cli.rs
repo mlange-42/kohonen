@@ -5,6 +5,8 @@ use crate::calc::norm::Norm;
 use crate::map::som::{DecayFunction, DecayParam};
 use crate::proc::InputLayer;
 use crate::EnumFromString;
+use std::fmt;
+use std::str::FromStr;
 use structopt::StructOpt;
 
 /// Raw command line arguments.
@@ -72,6 +74,29 @@ pub struct Cli {
     /// Output base path, with base file name. Optional, default: no file output.
     #[structopt(short, long)]
     output: Option<String>,
+}
+
+impl FromStr for Cli {
+    type Err = ParseCliError;
+
+    /// Parses a string into a Cli.
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let quote_parts: Vec<_> = str.split('"').collect();
+        let mut args: Vec<String> = vec![];
+        for (i, part) in quote_parts.iter().enumerate() {
+            let part = part.trim();
+            if i % 2 == 0 {
+                args.extend(
+                    part.split(' ')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty()),
+                );
+            } else {
+                args.push(part.to_string());
+            }
+        }
+        Ok(Cli::from_iter(args.iter()))
+    }
 }
 
 /// Parsed command line arguments.
@@ -213,6 +238,16 @@ impl CliParsed {
                 )
             })
             .collect::<Vec<_>>()
+    }
+}
+
+/// Error type for failed parsing of `String`s to `Cli`s.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseCliError(String);
+
+impl fmt::Display for ParseCliError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 
