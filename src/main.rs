@@ -6,11 +6,24 @@ use kohonen::ui::LayerView;
 use std::fs::File;
 use std::io::Write;
 use std::time::{Duration, Instant};
+use std::{env, fs};
 use structopt::StructOpt;
 
 fn main() {
-    let args = Cli::from_args();
-    let parsed = CliParsed::from_cli(args);
+    let args: Vec<String> = env::args().collect();
+    let parsed: CliParsed = if args.len() == 2 && !args[1].starts_with('-') {
+        let mut content = fs::read_to_string(&args[1]).expect(&format!(
+            "Something went wrong reading the options file {:?}",
+            &args[1]
+        ));
+        content = "kohonen ".to_string() + &content.replace("\r\n", " ").replace("\n", " ");
+        let cli: Cli = content.parse().unwrap();
+        CliParsed::from_cli(cli)
+    } else {
+        let cli = Cli::from_args();
+        CliParsed::from_cli(cli)
+    };
+
     println!("{:#?}", parsed);
 
     let proc = ProcessorBuilder::new(
