@@ -6,8 +6,9 @@ pub trait Metric: Sync {
     fn distance(&self, from: &[f64], to: &[f64]) -> f64;
 }*/
 
-use crate::{EnumFromString, ParseEnumError};
+use crate::ParseEnumError;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Metric {
@@ -64,12 +65,12 @@ impl Metric {
         }
     }
 }
-
-impl EnumFromString for Metric {
+impl FromStr for Metric {
+    type Err = ParseEnumError;
     /// Parse a string to a `Metric`.
     ///
     /// Accepts `"euclidean" | "tanimoto"`.
-    fn from_string(str: &str) -> Result<Metric, ParseEnumError> {
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
         match str {
             "euclidean" => Ok(Metric::Euclidean),
             "tanimoto" => Ok(Metric::Tanimoto),

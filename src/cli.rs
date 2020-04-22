@@ -1,10 +1,7 @@
 //! Command-line interface for SOMs.
-use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
-use crate::calc::norm::Norm;
-use crate::map::som::{DecayFunction, DecayParam};
+use crate::map::som::DecayParam;
 use crate::proc::InputLayer;
-use crate::EnumFromString;
 use std::fmt;
 use std::str::FromStr;
 use structopt::StructOpt;
@@ -136,7 +133,7 @@ impl CliParsed {
             radius: Self::parse_decay(cli.radius, "radius"),
             decay: Self::parse_decay(cli.decay, "decay"),
             neigh: match &cli.neigh {
-                Some(n) => Neighborhood::from_string(n).unwrap(),
+                Some(n) => n.parse().unwrap(),
                 None => Neighborhood::Gauss,
             },
             gui: !cli.nogui,
@@ -160,7 +157,7 @@ impl CliParsed {
             values[1]
                 .parse()
                 .expect(&format!("Unable to parse value {} in {}", values[1], name)),
-            DecayFunction::from_string(&values[2]).unwrap(),
+            values[2].parse().unwrap(),
             /*
             match &values[2][..] {
                 "lin" => DecayFunction::Linear,
@@ -232,8 +229,8 @@ impl CliParsed {
                     &lay.trim().split(' ').map(|s| &*s).collect::<Vec<_>>(),
                     *wt,
                     *cat,
-                    Metric::from_string(metr).unwrap(),
-                    Norm::from_string(norm).unwrap(),
+                    metr.parse().unwrap(),
+                    norm.parse().unwrap(),
                     None,
                 )
             })

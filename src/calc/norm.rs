@@ -3,6 +3,7 @@
 use crate::data::DataFrame;
 use crate::ParseEnumError;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Normalization types.
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
@@ -15,8 +16,10 @@ pub enum Norm {
     None,
 }
 
-impl Norm {
-    pub fn from_string(str: &str) -> Result<Norm, ParseEnumError> {
+impl FromStr for Norm {
+    type Err = ParseEnumError;
+
+    fn from_str(str: &str) -> Result<Norm, ParseEnumError> {
         match str {
             "unit" => Ok(Norm::Unit),
             "gauss" => Ok(Norm::Gauss),
