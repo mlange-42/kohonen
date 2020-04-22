@@ -474,7 +474,7 @@ impl Processor {
             self.layers.to_vec(),
         );
 
-        Som::new(&self.data.names_ref_vec(), nrows, ncols, params)
+        Som::new(&self.data.columns_ref_vec(), nrows, ncols, params)
     }
 
     /// Transforms a categorical / class layer to a vector of class labels.
@@ -495,11 +495,14 @@ impl Processor {
         let layer = &self.layers[layer_index];
         let start_col = som.params().start_columns()[layer_index];
 
-        let classes: Vec<_> = som.weights().names()[start_col..(start_col + layer.ncols())]
+        let classes: Vec<_> = som.weights().columns()[start_col..(start_col + layer.ncols())]
             .iter()
             .map(|n| n.splitn(2, ':').nth(1).unwrap())
             .collect();
-        let name = self.data.names()[start_col].splitn(2, ':').nth(0).unwrap();
+        let name = self.data.columns()[start_col]
+            .splitn(2, ':')
+            .nth(0)
+            .unwrap();
 
         let no_data = &self.csv_options.no_data;
         let result: Vec<_> = data
@@ -546,6 +549,43 @@ impl Processor {
         ))
     }
 
+    /// Writes normalization and de-normalization parameters to CSV file.
+    pub fn write_normalization(&self, som: &Som, path: &str) -> Result<(), Box<dyn Error>> {
+        let mut writer = WriterBuilder::new()
+            .delimiter(self.csv_options.delimiter)
+            .from_path(path)?;
+
+        let mut colnames: Vec<_> = som.weights().columns().to_vec();
+        colnames.insert(0, "param".to_string());
+        writer.write_record(&colnames)?;
+
+        let mut row: Vec<_> = self
+            .denorm
+            .iter()
+            .map(|d| d.inverse().scale().to_string())
+            .collect();
+        row.insert(0, "a_norm".to_string());
+        writer.write_record(&row)?;
+
+        let mut row: Vec<_> = self
+            .denorm
+            .iter()
+            .map(|d| d.inverse().offset().to_string())
+            .collect();
+        row.insert(0, "b_norm".to_string());
+        writer.write_record(&row)?;
+
+        let mut row: Vec<_> = self.denorm.iter().map(|d| d.scale().to_string()).collect();
+        row.insert(0, "a_denorm".to_string());
+        writer.write_record(&row)?;
+
+        let mut row: Vec<_> = self.denorm.iter().map(|d| d.offset().to_string()).collect();
+        row.insert(0, "b_denorm".to_string());
+        writer.write_record(&row)?;
+
+        Ok(())
+    }
+
     /// Writes SOM units to CSV file.
     pub fn write_som_units(
         &self,
@@ -562,7 +602,7 @@ impl Processor {
         for (idx, layer) in som.params().layers().iter().enumerate() {
             if class_values || !layer.categorical() {
                 let result = self.to_denormalized(&som, som.weights(), idx).unwrap();
-                names.extend_from_slice(&result.names());
+                names.extend_from_slice(&result.columns());
                 denorm[idx] = Some(result);
             }
             if layer.categorical() {
@@ -620,7 +660,7 @@ impl Processor {
     /// # Returns
     /// A vector of (unit index, distance).
     pub fn nearest_unit(&self, som: &Som, data: &DataFrame) -> Vec<(usize, f64)> {
-        assert_eq!(som.weights().names(), data.names());
+        assert_eq!(som.weights().columns(), data.columns());
 
         data.iter_rows()
             .map(|row| nn::nearest_neighbor_xyf(row, som.weights(), self.layers()))
@@ -649,7 +689,7 @@ impl Processor {
                 names.push(name);
             } else {
                 let result = self.to_denormalized(&som, data, idx).unwrap();
-                names.extend_from_slice(&result.names());
+                names.extend_from_slice(&result.columns());
                 denorm[idx] = Some(result);
             }
         }
@@ -870,7 +910,7 @@ mod test {
 
         assert_eq!(proc.data().nrows(), 150);
         assert_eq!(proc.data().ncols(), 7);
-        assert_eq!(proc.data().names().len(), 7);
+        assert_eq!(proc.data().columns().len(), 7);
         assert_eq!(
             proc.norm(),
             &[

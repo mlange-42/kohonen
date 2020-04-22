@@ -1,10 +1,7 @@
 //! Command-line interface for SOMs.
-use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
-use crate::calc::norm::Norm;
-use crate::map::som::{DecayFunction, DecayParam};
+use crate::map::som::DecayParam;
 use crate::proc::InputLayer;
-use crate::EnumFromString;
 use std::fmt;
 use std::str::FromStr;
 use structopt::StructOpt;
@@ -74,6 +71,10 @@ pub struct Cli {
     /// Output base path, with base file name. Optional, default: no file output.
     #[structopt(short, long)]
     output: Option<String>,
+
+    /// Keep the terminal and UI open after processing and wait for user key press.
+    #[structopt(long)]
+    wait: bool,
 }
 
 impl FromStr for Cli {
@@ -118,6 +119,7 @@ pub struct CliParsed {
     pub no_data: String,
     pub fps: f64,
     pub output: Option<String>,
+    pub wait: bool,
 }
 
 impl CliParsed {
@@ -136,13 +138,14 @@ impl CliParsed {
             radius: Self::parse_decay(cli.radius, "radius"),
             decay: Self::parse_decay(cli.decay, "decay"),
             neigh: match &cli.neigh {
-                Some(n) => Neighborhood::from_string(n).unwrap(),
+                Some(n) => n.parse().unwrap(),
                 None => Neighborhood::Gauss,
             },
             gui: !cli.nogui,
             no_data: cli.no_data.unwrap_or("NA".to_string()),
             fps: cli.fps.unwrap_or(2.0),
             output: cli.output,
+            wait: cli.wait,
         }
     }
 
@@ -160,7 +163,7 @@ impl CliParsed {
             values[1]
                 .parse()
                 .expect(&format!("Unable to parse value {} in {}", values[1], name)),
-            DecayFunction::from_string(&values[2]).unwrap(),
+            values[2].parse().unwrap(),
             /*
             match &values[2][..] {
                 "lin" => DecayFunction::Linear,
@@ -232,8 +235,8 @@ impl CliParsed {
                     &lay.trim().split(' ').map(|s| &*s).collect::<Vec<_>>(),
                     *wt,
                     *cat,
-                    Metric::from_string(metr).unwrap(),
-                    Norm::from_string(norm).unwrap(),
+                    metr.parse().unwrap(),
+                    norm.parse().unwrap(),
                     None,
                 )
             })

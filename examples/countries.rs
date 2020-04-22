@@ -50,7 +50,7 @@ fn main() {
         .with_fps_skip(1.0)
         .build();
 
-    let mut view_x = LayerView::new(win_x, &[0], &proc.data().names_ref_vec(), None);
+    let mut view_x = LayerView::new(win_x, &[0], &proc.data().columns_ref_vec(), None);
 
     while view_x.is_open() {
         som.epoch(proc.data(), None);

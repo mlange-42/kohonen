@@ -13,4 +13,5 @@
 --neigh gauss ^
 --no-data - ^
 --fps 1 ^
---output ..\example_data\_winequality-red
+--output ..\example_data\_winequality-red ^
+--wait

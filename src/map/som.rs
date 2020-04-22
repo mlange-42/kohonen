@@ -4,10 +4,11 @@ use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
 use crate::calc::nn;
 use crate::data::DataFrame;
-use crate::{EnumFromString, ParseEnumError};
+use crate::ParseEnumError;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cmp;
+use std::str::FromStr;
 
 /// SOM training parameters
 #[derive(Serialize, Deserialize)]
@@ -136,11 +137,12 @@ pub enum DecayFunction {
     /// Exponential decay
     Exponential,
 }
-impl EnumFromString for DecayFunction {
+impl FromStr for DecayFunction {
+    type Err = ParseEnumError;
     /// Parse a string to a `DecayFunction`.
     ///
     /// Accepts `"lin" | "exp"`.
-    fn from_string(str: &str) -> Result<DecayFunction, ParseEnumError> {
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
         match str {
             "lin" => Ok(DecayFunction::Linear),
             "exp" => Ok(DecayFunction::Exponential),
@@ -151,6 +153,7 @@ impl EnumFromString for DecayFunction {
         }
     }
 }
+
 /// Decay parameters for learing parameters.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecayParam {
