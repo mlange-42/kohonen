@@ -49,6 +49,12 @@ impl LinearTransform {
             offset: -self.offset / self.scale,
         }
     }
+    pub fn scale(&self) -> f64 {
+        self.scale
+    }
+    pub fn offset(&self) -> f64 {
+        self.offset
+    }
 }
 
 /// Normalize a data frame, with a [`Norm`](struct.Norm.html) and scale per column.
@@ -126,7 +132,7 @@ pub fn normalize(
         })
         .collect();
 
-    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let cols: Vec<_> = data.columns().iter().map(|x| &**x).collect();
     let mut df = DataFrame::empty(&cols);
 
     for row in data.iter_rows() {
@@ -148,7 +154,7 @@ pub fn normalize(
 /// A de-normalized data frame
 pub fn denormalize(data: &DataFrame, denorm: &[LinearTransform]) -> DataFrame {
     assert_eq!(data.ncols(), denorm.len());
-    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let cols: Vec<_> = data.columns().iter().map(|x| &**x).collect();
     let mut df = DataFrame::empty(&cols);
     for row in data.iter_rows() {
         df.push_row_iter(
@@ -171,7 +177,7 @@ pub fn denormalize_columns(
     denorm: &[LinearTransform],
 ) -> DataFrame {
     assert_eq!(columns.len(), denorm.len());
-    let cols: Vec<_> = columns.iter().map(|i| &data.names()[*i][..]).collect();
+    let cols: Vec<_> = columns.iter().map(|i| &data.columns()[*i][..]).collect();
     let mut df = DataFrame::empty(&cols);
     for row in data.iter_rows() {
         df.push_row_iter(

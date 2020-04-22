@@ -66,11 +66,11 @@ impl DataFrame {
     }
 
     /// Returns a reference to the data frame's column names.
-    pub fn names(&self) -> &[String] {
+    pub fn columns(&self) -> &[String] {
         &self.columns
     }
     /// Returns the data frame's column names as a vector of references.
-    pub fn names_ref_vec(&self) -> Vec<&str> {
+    pub fn columns_ref_vec(&self) -> Vec<&str> {
         self.columns.iter().map(|x| &**x).collect()
     }
 

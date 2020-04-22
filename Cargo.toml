@@ -12,6 +12,7 @@ rand = "0.5.5"
 easy_graph = { git = "https://github.com/mlange-42/easy_graph.git" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+dont_disappear = "3.0.1"
 
 # TODO put CLI in feature
 structopt = "0.3"

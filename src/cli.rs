@@ -71,6 +71,10 @@ pub struct Cli {
     /// Output base path, with base file name. Optional, default: no file output.
     #[structopt(short, long)]
     output: Option<String>,
+
+    /// Keep the terminal and UI open after processing and wait for user key press.
+    #[structopt(long)]
+    wait: bool,
 }
 
 impl FromStr for Cli {
@@ -115,6 +119,7 @@ pub struct CliParsed {
     pub no_data: String,
     pub fps: f64,
     pub output: Option<String>,
+    pub wait: bool,
 }
 
 impl CliParsed {
@@ -140,6 +145,7 @@ impl CliParsed {
             no_data: cli.no_data.unwrap_or("NA".to_string()),
             fps: cli.fps.unwrap_or(2.0),
             output: cli.output,
+            wait: cli.wait,
         }
     }
 
