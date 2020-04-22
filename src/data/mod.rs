@@ -9,7 +9,7 @@ use std::slice::{Chunks, ChunksMut};
 pub struct DataFrame {
     ncols: usize,
     nrows: usize,
-    names: Vec<String>,
+    columns: Vec<String>,
     data: Vec<f64>,
 }
 
@@ -18,7 +18,7 @@ impl DataFrame {
     /// Creates an empty data frame, with the given columns and zero rows.
     pub fn empty(columns: &[&str]) -> Self {
         DataFrame {
-            names: columns.iter().map(|s| s.to_string()).collect(),
+            columns: columns.iter().map(|s| s.to_string()).collect(),
             ncols: columns.len(),
             nrows: 0,
             data: vec![],
@@ -28,7 +28,7 @@ impl DataFrame {
     /// Creates a blank data frame, with the given number of columns and rows, filled with a value.
     pub fn filled(nrows: usize, columns: &[&str], fill: f64) -> Self {
         DataFrame {
-            names: columns.iter().map(|s| s.to_string()).collect(),
+            columns: columns.iter().map(|s| s.to_string()).collect(),
             ncols: columns.len(),
             nrows,
             data: vec![fill; nrows * columns.len()],
@@ -39,7 +39,7 @@ impl DataFrame {
     pub fn from_rows(columns: &[&str], rows: &[Vec<f64>]) -> Self {
         assert_eq!(columns.len(), rows[0].len());
         DataFrame {
-            names: columns.iter().map(|s| s.to_string()).collect(),
+            columns: columns.iter().map(|s| s.to_string()).collect(),
             ncols: rows[0].len(),
             nrows: rows.len(),
             data: rows.iter().flatten().copied().collect(),
@@ -66,12 +66,12 @@ impl DataFrame {
     }
 
     /// Returns a reference to the data frame's column names.
-    pub fn names(&self) -> &[String] {
-        &self.names
+    pub fn columns(&self) -> &[String] {
+        &self.columns
     }
     /// Returns the data frame's column names as a vector of references.
-    pub fn names_ref_vec(&self) -> Vec<&str> {
-        self.names.iter().map(|x| &**x).collect()
+    pub fn columns_ref_vec(&self) -> Vec<&str> {
+        self.columns.iter().map(|x| &**x).collect()
     }
 
     /// Appends a row to the end of the data frame, from a slice.

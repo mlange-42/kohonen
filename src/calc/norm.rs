@@ -3,6 +3,7 @@
 use crate::data::DataFrame;
 use crate::ParseEnumError;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Normalization types.
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
@@ -15,8 +16,10 @@ pub enum Norm {
     None,
 }
 
-impl Norm {
-    pub fn from_string(str: &str) -> Result<Norm, ParseEnumError> {
+impl FromStr for Norm {
+    type Err = ParseEnumError;
+
+    fn from_str(str: &str) -> Result<Norm, ParseEnumError> {
         match str {
             "unit" => Ok(Norm::Unit),
             "gauss" => Ok(Norm::Gauss),
@@ -45,6 +48,12 @@ impl LinearTransform {
             scale: 1.0 / self.scale,
             offset: -self.offset / self.scale,
         }
+    }
+    pub fn scale(&self) -> f64 {
+        self.scale
+    }
+    pub fn offset(&self) -> f64 {
+        self.offset
     }
 }
 
@@ -123,7 +132,7 @@ pub fn normalize(
         })
         .collect();
 
-    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let cols: Vec<_> = data.columns().iter().map(|x| &**x).collect();
     let mut df = DataFrame::empty(&cols);
 
     for row in data.iter_rows() {
@@ -145,7 +154,7 @@ pub fn normalize(
 /// A de-normalized data frame
 pub fn denormalize(data: &DataFrame, denorm: &[LinearTransform]) -> DataFrame {
     assert_eq!(data.ncols(), denorm.len());
-    let cols: Vec<_> = data.names().iter().map(|x| &**x).collect();
+    let cols: Vec<_> = data.columns().iter().map(|x| &**x).collect();
     let mut df = DataFrame::empty(&cols);
     for row in data.iter_rows() {
         df.push_row_iter(
@@ -168,7 +177,7 @@ pub fn denormalize_columns(
     denorm: &[LinearTransform],
 ) -> DataFrame {
     assert_eq!(columns.len(), denorm.len());
-    let cols: Vec<_> = columns.iter().map(|i| &data.names()[*i][..]).collect();
+    let cols: Vec<_> = columns.iter().map(|i| &data.columns()[*i][..]).collect();
     let mut df = DataFrame::empty(&cols);
     for row in data.iter_rows() {
         df.push_row_iter(

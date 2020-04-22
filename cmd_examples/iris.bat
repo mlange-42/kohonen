@@ -11,4 +11,5 @@
 --radius 8 0.7 lin ^
 --decay 0.2 0.001 exp ^
 --neigh gauss ^
---output ..\example_data\_iris
+--output ..\example_data\_iris ^
+--wait

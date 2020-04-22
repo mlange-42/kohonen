@@ -1,10 +1,9 @@
 //! Command-line interface for SOMs.
-use crate::calc::metric::Metric;
 use crate::calc::neighborhood::Neighborhood;
-use crate::calc::norm::Norm;
-use crate::map::som::{DecayFunction, DecayParam};
+use crate::map::som::DecayParam;
 use crate::proc::InputLayer;
-use crate::EnumFromString;
+use std::fmt;
+use std::str::FromStr;
 use structopt::StructOpt;
 
 /// Raw command line arguments.
@@ -72,6 +71,33 @@ pub struct Cli {
     /// Output base path, with base file name. Optional, default: no file output.
     #[structopt(short, long)]
     output: Option<String>,
+
+    /// Keep the terminal and UI open after processing and wait for user key press.
+    #[structopt(long)]
+    wait: bool,
+}
+
+impl FromStr for Cli {
+    type Err = ParseCliError;
+
+    /// Parses a string into a Cli.
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let quote_parts: Vec<_> = str.split('"').collect();
+        let mut args: Vec<String> = vec![];
+        for (i, part) in quote_parts.iter().enumerate() {
+            let part = part.trim();
+            if i % 2 == 0 {
+                args.extend(
+                    part.split(' ')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty()),
+                );
+            } else {
+                args.push(part.to_string());
+            }
+        }
+        Ok(Cli::from_iter(args.iter()))
+    }
 }
 
 /// Parsed command line arguments.
@@ -93,6 +119,7 @@ pub struct CliParsed {
     pub no_data: String,
     pub fps: f64,
     pub output: Option<String>,
+    pub wait: bool,
 }
 
 impl CliParsed {
@@ -111,13 +138,14 @@ impl CliParsed {
             radius: Self::parse_decay(cli.radius, "radius"),
             decay: Self::parse_decay(cli.decay, "decay"),
             neigh: match &cli.neigh {
-                Some(n) => Neighborhood::from_string(n).unwrap(),
+                Some(n) => n.parse().unwrap(),
                 None => Neighborhood::Gauss,
             },
             gui: !cli.nogui,
             no_data: cli.no_data.unwrap_or("NA".to_string()),
             fps: cli.fps.unwrap_or(2.0),
             output: cli.output,
+            wait: cli.wait,
         }
     }
 
@@ -135,7 +163,7 @@ impl CliParsed {
             values[1]
                 .parse()
                 .expect(&format!("Unable to parse value {} in {}", values[1], name)),
-            DecayFunction::from_string(&values[2]).unwrap(),
+            values[2].parse().unwrap(),
             /*
             match &values[2][..] {
                 "lin" => DecayFunction::Linear,
@@ -207,12 +235,22 @@ impl CliParsed {
                     &lay.trim().split(' ').map(|s| &*s).collect::<Vec<_>>(),
                     *wt,
                     *cat,
-                    Metric::from_string(metr).unwrap(),
-                    Norm::from_string(norm).unwrap(),
+                    metr.parse().unwrap(),
+                    norm.parse().unwrap(),
                     None,
                 )
             })
             .collect::<Vec<_>>()
+    }
+}
+
+/// Error type for failed parsing of `String`s to `Cli`s.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseCliError(String);
+
+impl fmt::Display for ParseCliError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 

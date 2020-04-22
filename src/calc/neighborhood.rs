@@ -1,7 +1,8 @@
 //! Neighborhoods (i.e. kernels), for effect on nearby SOM-units.
 
-use crate::{EnumFromString, ParseEnumError};
+use crate::ParseEnumError;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Neighborhoods: 4 or 8 neighbors.
 #[derive(Debug, Clone)]
@@ -9,11 +10,13 @@ pub enum Neighbors {
     Neighbors4,
     Neighbors8,
 }
-impl EnumFromString for Neighbors {
+impl FromStr for Neighbors {
+    type Err = ParseEnumError;
+
     /// Parse a string to a `Neighbors`.
     ///
     /// Accepts `"4" | "n4" | "N4" | "Neighbors4" | "8" | "n8" | "N8" | "Neighbors8"`.
-    fn from_string(str: &str) -> Result<Neighbors, ParseEnumError> {
+    fn from_str(str: &str) -> Result<Neighbors, ParseEnumError> {
         match str {
             "4" | "n4" | "N4" | "Neighbors4" => Ok(Neighbors::Neighbors4),
             "8" | "n8" | "N8" | "Neighbors8" => Ok(Neighbors::Neighbors8),
@@ -83,6 +86,27 @@ impl Neighborhood {
         }
     }
 }
+impl FromStr for Neighborhood {
+    type Err = ParseEnumError;
+
+    /// Parse a string to a `Neighborhood`.
+    ///
+    /// Accepts `gauss | triangular | epanechnikov | quartic | triweight`.
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        match str {
+            "gauss" => Ok(Neighborhood::Gauss),
+            "triangular" => Ok(Neighborhood::Triangular),
+            "epanechnikov" => Ok(Neighborhood::Epanechnikov),
+            "quartic" => Ok(Neighborhood::Quartic),
+            "triweight" => Ok(Neighborhood::Triweight),
+            _ => Err(ParseEnumError(format!(
+                "Not a neighborhood: {}. Must be one of (gauss|<todo>)",
+                str
+            ))),
+        }
+    }
+}
+/*
 impl EnumFromString for Neighborhood {
     /// Parse a string to a `Neighborhood`.
     ///
@@ -100,7 +124,7 @@ impl EnumFromString for Neighborhood {
             ))),
         }
     }
-}
+}*/
 
 #[cfg(test)]
 mod test {
