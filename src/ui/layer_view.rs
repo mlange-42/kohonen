@@ -375,6 +375,7 @@ mod test {
         );
         let som = Som::new(&cols, 16, 20, params);
 
+        /*
         let win = WindowBuilder::new()
             .with_dimensions(800, 600)
             .with_fps_skip(10.0)
@@ -382,8 +383,7 @@ mod test {
 
         let mut view = LayerView::new(win, &[0], &cols, None);
 
-        //while view.window.is_open() {
         view.draw(&som, None);
-        //}
+        */
     }
 }
