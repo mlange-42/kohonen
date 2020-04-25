@@ -1,4 +1,7 @@
 # kohonen
+
+[![Build Status](https://travis-ci.com/mlange-42/kohonen.svg?branch=master)](https://travis-ci.com/mlange-42/kohonen)
+
 A Rust Self-organizing Maps (SOM) / Kohonen networks library and command line tool.
 
 _Warning:_ This project is in a very experimental state.
