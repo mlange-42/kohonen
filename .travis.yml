@@ -1,20 +1,44 @@
 language: rust
+env:
+  global:
+    - REPO=kohonen
+
+os:
+  - windows
+  - linux
+  - osx
+
 rust:
   - stable
-  - nightly
-
-matrix:
-  allow_failures:
-    - rust: nightly
-  fast_finish: true
 
 branches:
   only:
     - master
     - dev
+    - "/\\d+\\.\\d+\\.\\d+/"
 
 script:
-  - cargo build --verbose
+  - cargo build --release --verbose
   - cargo test --verbose
 
 cache: cargo
+
+before_deploy:
+  - rm -rf ${REPO} || exit 0
+  - mkdir ${REPO}
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cp -f target/release/kohonen ${REPO} > /dev/null; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp -f target/release/kohonen ${REPO} > /dev/null; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cp -f target/release/kohonen.exe ${REPO} > /dev/null; fi
+  - cp -fr cmd_examples ${REPO} > /dev/null
+  - cp -fr example_data ${REPO} > /dev/null
+  - tar -czf ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz ${REPO}
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: hUHULfPHLuQhQPwqbBy87pUNw/IbCo0yziaSwe+Mco/LSFMLc3e9A0RFFi/kVpIjGssYQFXtw7lEN0tAMdauqVfpFPsLlUNAWQFvj7faQ307SsDI0SIblZU3oF53Yue+SwdNzxQhx3NNqZpOHHGn5gCmYmZ46fUUPYstsCz7rRT0v5tSc798h7jZdUkJzMxKVqAQu9l+9sxzZPrBADbD66cwgBR0wLyXMLwelluLDI6W6LmF7KUy5zUVv6T7p6Zi4lxhHW+EnjdG8EuiANpQ7GMDs7heR2KxpXXti6kuel+ETGLeb4trofeJtikfbHtxoQIk046O/eYVsZSeS8jzEPxtZAWBb0K1nq83D+uh3DH1zm2RoksVQ4GHU72p+H//QuK0VoOT3xKTFnRXl9hrvV0/08pVKkd2uSbErbwIyw3fga13WIxaqC177scPnK7glafXunnqQOCs75SjUH+79AEtmrQMHn26nVvHcvXJiyxTSIYTZxAqDHMhFyLdgFoczHhdEOeTm0w/GnfzjnacXQvPQhe+9INLbedOEcwa0wVmjnKl8fe/rIHAiRv6ycI+Gs497p9NHS8DavF5WSgh42wqRCnPHokHRJKMGGz8beX3rmxeHNfqpw4lBYY2o4J6XItJmJgpbUGshr+G0FPUniYYVegVNsrHfQscbXnwLEc=
+  file: ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz
+  on:
+    tags: true
+    all_branches: true
