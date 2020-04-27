@@ -1,4 +1,4 @@
-..\kohonen ^
+..\target\release\kohonen ^
 --file ..\example_data\us-congress-votes.csv ^
 --size 16 12 ^
 --epochs 1000 ^
