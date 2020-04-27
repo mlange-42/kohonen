@@ -359,8 +359,6 @@ impl LayerView {
 mod test {
     use crate::calc::neighborhood::Neighborhood;
     use crate::map::som::{DecayParam, Layer, Som, SomParams};
-    use crate::ui::layer_view::LayerView;
-    use easy_graph::ui::window::WindowBuilder;
 
     #[test]
     fn view_layer() {

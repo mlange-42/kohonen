@@ -1,4 +1,4 @@
-..\kohonen.exe ^
+..\kohonen ^
 --file ..\example_data\winequality-red.csv ^
 --size 16 12 ^
 --epochs 1000 ^

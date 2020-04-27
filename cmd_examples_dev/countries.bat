@@ -1,4 +1,4 @@
-..\target\release\kohonen.exe ^
+..\target\release\kohonen ^
 --file ..\example_data\countries.csv ^
 --size 16 12 ^
 --epochs 2500 ^
