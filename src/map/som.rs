@@ -373,9 +373,8 @@ impl Som {
                     let weight = neigh.weight(radius_inv * dist);
                     for (i, smp) in sample.iter().enumerate().take(self.dims) {
                         if !smp.is_nan() {
-                            let value = *self.weights.get(index, i);
-                            self.weights
-                                .set(index, i, value + weight * alpha * (smp - value));
+                            let value = self.weights.get_mut(index, i);
+                            *value += weight * alpha * (smp - *value);
                         }
                     }
                 }
