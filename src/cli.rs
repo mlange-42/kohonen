@@ -142,7 +142,7 @@ impl CliParsed {
                 None => Neighborhood::Gauss,
             },
             gui: !cli.nogui,
-            no_data: cli.no_data.unwrap_or("NA".to_string()),
+            no_data: cli.no_data.unwrap_or_else(|| "NA".to_string()),
             fps: cli.fps.unwrap_or(2.0),
             output: cli.output,
             wait: cli.wait,
@@ -157,12 +157,12 @@ impl CliParsed {
             ));
         }
         DecayParam::new(
-            values[0]
-                .parse()
-                .expect(&format!("Unable to parse value {} in {}", values[0], name)),
-            values[1]
-                .parse()
-                .expect(&format!("Unable to parse value {} in {}", values[1], name)),
+            values[0].parse().unwrap_or_else(|err| {
+                panic!("Unable to parse value {} in {}: {}", values[0], name, err)
+            }),
+            values[1].parse().unwrap_or_else(|err| {
+                panic!("Unable to parse value {} in {}: {}", values[1], name, err)
+            }),
             values[2].parse().unwrap(),
             /*
             match &values[2][..] {
@@ -178,16 +178,16 @@ impl CliParsed {
         }
         let n_layers = cli.layers.len();
 
-        if cli.weights.len() != 0 && cli.weights.len() != n_layers {
+        if !cli.weights.is_empty() && cli.weights.len() != n_layers {
             panic!("Expected no weights, or as many as layers (option --weights)");
         }
-        if cli.categ.len() != 0 && cli.categ.len() != n_layers {
+        if !cli.categ.is_empty() && cli.categ.len() != n_layers {
             panic!("Expected no categorical 0/1, or as many as layers (option --weights)");
         }
-        if cli.metric.len() != 0 && cli.metric.len() != n_layers {
+        if !cli.metric.is_empty() && cli.metric.len() != n_layers {
             panic!("Expected no metric, or as many as layers (option --metric)");
         }
-        if cli.norm.len() != 0 && cli.norm.len() != n_layers {
+        if !cli.norm.is_empty() && cli.norm.len() != n_layers {
             panic!("Expected no normalizers, or as many as layers (option --norm)");
         }
 
