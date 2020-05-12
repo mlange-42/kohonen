@@ -242,8 +242,8 @@ impl Som {
         let mut rng = rand::thread_rng();
         let cols = self.weights.ncols();
         for row in self.weights.iter_rows_mut() {
-            for c in 0..cols {
-                row[c] = rng.gen_range(0.0, 1.0);
+            for col in &mut row[..cols] {
+                *col = rng.gen_range(0.0, 1.0);
             }
         }
     }
@@ -339,7 +339,7 @@ impl Som {
     /// Trains the SOM for a single sample.
     fn train(&mut self, sample: &[f64]) {
         let params = &self.params;
-        let (nearest, _) = if params.layers.len() == 0 {
+        let (nearest, _) = if params.layers.is_empty() {
             nn::nearest_neighbor(sample, &self.weights)
         } else if params.layers.len() == 1 {
             if params.layers[0].categorical {
@@ -371,8 +371,7 @@ impl Som {
                 let dist = *self.distances_matrix.get(nearest, index) as f64;
                 if dist <= search_rad {
                     let weight = neigh.weight(radius_inv * dist);
-                    for i in 0..self.dims {
-                        let smp = sample[i];
+                    for (i, smp) in sample.iter().enumerate().take(self.dims) {
                         if !smp.is_nan() {
                             let value = *self.weights.get(index, i);
                             self.weights
