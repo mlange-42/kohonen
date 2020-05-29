@@ -369,8 +369,8 @@ impl Processor {
         reader.seek(start_pos).unwrap();
         for (rec_idx, record) in reader.records().enumerate() {
             let rec = record?;
-            for v in &mut row {
-                *v = 0.0;
+            for col in &mut row {
+                *col = 0.0;
             }
             for (idx, col_idx) in id_indices.iter().enumerate() {
                 let id = rec.get(*col_idx).unwrap();
@@ -391,12 +391,12 @@ impl Processor {
                 if inp.is_class {
                     let v = rec.get(indices[0]).unwrap();
                     if v == no_data {
-                        for row_val in row
+                        for col in row
                             .iter_mut()
                             .skip(start)
                             .take(cat_levels[layer_index].len())
                         {
-                            *row_val = std::f64::NAN;
+                            *col = std::f64::NAN;
                         }
                     } else {
                         let pos = cat_levels[layer_index]
@@ -411,8 +411,11 @@ impl Processor {
                         if str == no_data {
                             row[start + i] = std::f64::NAN;
                         } else {
-                            let v: f64 = str.parse().unwrap_or_else(|_| {
-                                panic!("Unable to parse value {} in column {}", str, inp.names[i])
+                            let v: f64 = str.parse().unwrap_or_else(|err| {
+                                panic!(
+                                    "Unable to parse value {} in column {}: {}",
+                                    str, inp.names[i], err
+                                )
                             });
                             row[start + i] = v;
                         }
@@ -516,10 +519,10 @@ impl Processor {
                 let mut v_max = std::f64::MIN;
                 let mut idx_max = 0;
                 let mut any = false;
-                for (i, v) in row.iter().enumerate().skip(start_col).take(layer.ncols()) {
+                for (i, &v) in row.iter().enumerate().skip(start_col).take(layer.ncols()) {
                     if !v.is_nan() {
-                        if *v > v_max {
-                            v_max = *v;
+                        if v > v_max {
+                            v_max = v;
                             idx_max = i;
                         }
                         any = true;

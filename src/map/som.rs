@@ -241,8 +241,8 @@ impl Som {
     pub fn init_weights(&mut self) {
         let mut rng = rand::thread_rng();
         for row in self.weights.iter_rows_mut() {
-            for r in row.iter_mut() {
-                *r = rng.gen_range(0.0, 1.0);
+            for col in &mut row[..] {
+                *col = rng.gen_range(0.0, 1.0);
             }
         }
     }
@@ -372,9 +372,8 @@ impl Som {
                     let weight = neigh.weight(radius_inv * dist);
                     for (i, smp) in sample.iter().enumerate() {
                         if !smp.is_nan() {
-                            let value = *self.weights.get(index, i);
-                            self.weights
-                                .set(index, i, value + weight * alpha * (smp - value));
+                            let value = self.weights.get_mut(index, i);
+                            *value += weight * alpha * (smp - *value);
                         }
                     }
                 }

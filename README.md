@@ -20,7 +20,7 @@ _Warning:_ This project is in a very experimental state.
 
 ### Usage
 
-* Try the examples in sub-directory [`/cmd_examples`](https://github.com/mlange-42/chrono-photo/tree/master/cmd_examples).
+* Try the examples in sub-directory [`/cmd_examples`](/cmd_examples).
 * To view the full list of options, run `kohonen --help`
 
 ## Library / crate

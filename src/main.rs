@@ -21,10 +21,10 @@ fn main() {
         env::args().collect()
     };
     let mut parsed: CliParsed = if args.len() == 2 && !args[1].starts_with('-') {
-        let mut content = fs::read_to_string(&args[1]).unwrap_or_else(|_| {
+        let mut content = fs::read_to_string(&args[1]).unwrap_or_else(|err| {
             panic!(
-                "Something went wrong reading the options file {:?}",
-                &args[1]
+                "Something went wrong reading the options file {:?}: {}",
+                &args[1], err,
             )
         });
         content = "kohonen ".to_string() + &content.replace("\r\n", " ").replace("\n", " ");

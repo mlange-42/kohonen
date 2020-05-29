@@ -157,12 +157,12 @@ impl CliParsed {
             ));
         }
         DecayParam::new(
-            values[0]
-                .parse()
-                .unwrap_or_else(|_| panic!("Unable to parse value {} in {}", values[0], name)),
-            values[1]
-                .parse()
-                .unwrap_or_else(|_| panic!("Unable to parse value {} in {}", values[1], name)),
+            values[0].parse().unwrap_or_else(|err| {
+                panic!("Unable to parse value {} in {}: {}", values[0], name, err)
+            }),
+            values[1].parse().unwrap_or_else(|err| {
+                panic!("Unable to parse value {} in {}: {}", values[1], name, err)
+            }),
             values[2].parse().unwrap(),
             /*
             match &values[2][..] {
