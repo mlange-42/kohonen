@@ -1,11 +1,12 @@
 #[macro_use]
 extern crate gdnative;
+extern crate kohonen;
 
-mod hello_world;
-pub use hello_world::HelloWorld;
+mod kohonen_gd;
+pub use kohonen_gd::Kohonen;
 
 fn init(handle: gdnative::init::InitHandle) {
-    handle.add_class::<HelloWorld>();
+    handle.add_class::<Kohonen>();
 }
 
 godot_gdnative_init!();

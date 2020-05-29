@@ -1,8 +1,8 @@
 [entry]
 
-X11.64="res://../target/debug/libkohvis.so"
-OSX.64="res://../target/debug/libkohvis.dylib"
-Windows.64="res://../target/debug/kohvis.dll"
+X11.64="res://libkohvis.so"
+OSX.64="res://libkohvis.dylib"
+Windows.64="res://kohvis.dll"
 
 [dependencies]
 
