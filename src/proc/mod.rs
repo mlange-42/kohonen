@@ -126,17 +126,17 @@ impl ProcessorBuilder {
     /// Creates a `ProcessorBuilder` for the given [`InputLayer`s](struct.InputLayer.html).
     pub fn new(
         layers: &[InputLayer],
-        preserve: &Vec<String>,
+        preserve: &[String],
         label: &Option<String>,
         label_length: &Option<usize>,
         label_samples: &Option<usize>,
     ) -> Self {
         ProcessorBuilder {
             input_layers: layers.to_vec(),
-            preserve: preserve.clone(),
+            preserve: preserve.to_vec(),
             labels: label.clone(),
-            label_length: label_length.clone(),
-            label_samples: label_samples.clone(),
+            label_length: *label_length,
+            label_samples: *label_samples,
             csv_options: CsvOptions {
                 delimiter: b',',
                 no_data: "NA".to_string(),
@@ -241,6 +241,7 @@ impl Processor {
         }
     }
 
+    #[allow(clippy::cognitive_complexity)]
     fn read_file(
         mut input_layers: Vec<InputLayer>,
         preserve_columns: Vec<String>,
@@ -269,7 +270,7 @@ impl Processor {
                         header
                             .iter()
                             .position(|n2| n2 == n)
-                            .expect(&format!("Column '{}' not found.", n))
+                            .unwrap_or_else(|| panic!("Column '{}' not found.", n))
                     })
                     .collect(),
             );
@@ -283,7 +284,7 @@ impl Processor {
             .filter(|(_i, lay)| lay.is_class)
             .collect();
 
-        // find unique levals of categorical layers
+        // find unique levels of categorical layers
         let mut cat_levels: Vec<_> = vec![HashSet::<String>::new(); input_layers.len()];
         let start_pos = reader.position().clone();
         for record in reader.records() {
@@ -342,7 +343,7 @@ impl Processor {
                 header
                     .iter()
                     .position(|n2| *n2 == col)
-                    .expect(&format!("Preserved column '{}' not found.", col))
+                    .unwrap_or_else(|| panic!("Preserved column '{}' not found.", col))
             })
             .collect();
         let mut id_values = vec![Vec::<String>::new(); id_indices.len()];
@@ -354,7 +355,7 @@ impl Processor {
                     header
                         .iter()
                         .position(|n2| *n2 == col)
-                        .expect(&format!("Label column '{}' not found.", col)),
+                        .unwrap_or_else(|| panic!("Label column '{}' not found.", col)),
                 ),
                 Some(Vec::new()),
             ),
@@ -368,8 +369,8 @@ impl Processor {
         reader.seek(start_pos).unwrap();
         for (rec_idx, record) in reader.records().enumerate() {
             let rec = record?;
-            for i in 0..row.len() {
-                row[i] = 0.0;
+            for v in &mut row {
+                *v = 0.0;
             }
             for (idx, col_idx) in id_indices.iter().enumerate() {
                 let id = rec.get(*col_idx).unwrap();
@@ -390,8 +391,12 @@ impl Processor {
                 if inp.is_class {
                     let v = rec.get(indices[0]).unwrap();
                     if v == no_data {
-                        for i in start..(start + cat_levels[layer_index].len()) {
-                            row[i] = std::f64::NAN;
+                        for row_val in row
+                            .iter_mut()
+                            .skip(start)
+                            .take(cat_levels[layer_index].len())
+                        {
+                            *row_val = std::f64::NAN;
                         }
                     } else {
                         let pos = cat_levels[layer_index]
@@ -406,10 +411,9 @@ impl Processor {
                         if str == no_data {
                             row[start + i] = std::f64::NAN;
                         } else {
-                            let v: f64 = str.parse().expect(&format!(
-                                "Unable to parse value {} in column {}",
-                                str, inp.names[i]
-                            ));
+                            let v: f64 = str.parse().unwrap_or_else(|_| {
+                                panic!("Unable to parse value {} in column {}", str, inp.names[i])
+                            });
                             row[start + i] = v;
                         }
                     }
@@ -442,9 +446,9 @@ impl Processor {
         Ok(Processor {
             input_layers,
             data: data_norm,
-            preserve_columns: preserve_columns.clone(),
+            preserve_columns,
             preserved: id_values,
-            label_column: label_column.clone(),
+            label_column,
             labels,
             layers,
             norm,
@@ -455,6 +459,7 @@ impl Processor {
     }
 
     /// Creates an SOM for the `Processor`'s layer definitions and data.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_som(
         &self,
         nrows: usize,
@@ -501,7 +506,7 @@ impl Processor {
             .collect();
         let name = self.data.columns()[start_col]
             .splitn(2, ':')
-            .nth(0)
+            .next()
             .unwrap();
 
         let no_data = &self.csv_options.no_data;
@@ -511,11 +516,10 @@ impl Processor {
                 let mut v_max = std::f64::MIN;
                 let mut idx_max = 0;
                 let mut any = false;
-                for i in start_col..(start_col + layer.ncols()) {
-                    let v = row[i];
+                for (i, v) in row.iter().enumerate().skip(start_col).take(layer.ncols()) {
                     if !v.is_nan() {
-                        if v > v_max {
-                            v_max = v;
+                        if *v > v_max {
+                            v_max = *v;
                             idx_max = i;
                         }
                         any = true;
@@ -769,7 +773,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
+        let proc = ProcessorBuilder::new(&layers, &[], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -802,7 +806,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
+        let proc = ProcessorBuilder::new(&layers, &[], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -831,7 +835,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
+        let proc = ProcessorBuilder::new(&layers, &[], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -862,7 +866,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
+        let proc = ProcessorBuilder::new(&layers, &[], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();
@@ -893,7 +897,7 @@ mod test {
             InputLayer::cat_simple("species"),
         ];
 
-        let proc = ProcessorBuilder::new(&layers, &vec![], &None, &None, &None)
+        let proc = ProcessorBuilder::new(&layers, &[], &None, &None, &None)
             .with_delimiter(b';')
             .build_from_file("example_data/iris.csv")
             .unwrap();

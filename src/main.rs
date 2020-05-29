@@ -21,10 +21,12 @@ fn main() {
         env::args().collect()
     };
     let mut parsed: CliParsed = if args.len() == 2 && !args[1].starts_with('-') {
-        let mut content = fs::read_to_string(&args[1]).expect(&format!(
-            "Something went wrong reading the options file {:?}",
-            &args[1]
-        ));
+        let mut content = fs::read_to_string(&args[1]).unwrap_or_else(|_| {
+            panic!(
+                "Something went wrong reading the options file {:?}",
+                &args[1]
+            )
+        });
         content = "kohonen ".to_string() + &content.replace("\r\n", " ").replace("\n", " ");
         let cli: Cli = content.parse().unwrap();
         CliParsed::from_cli(cli)
@@ -81,7 +83,7 @@ fn main() {
     let start = Instant::now();
 
     if let Some(views) = &mut viewers {
-        while views.iter().fold(false, |a, v| a || v.is_open()) {
+        while views.iter().any(|v| v.is_open()) {
             let res = som.epoch(&proc.data(), None);
             let label_data = match proc.labels() {
                 Some(lab) => Some((proc.data(), lab)),

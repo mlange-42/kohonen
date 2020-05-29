@@ -190,7 +190,6 @@ mod test {
     use crate::calc::nn;
     use crate::data::DataFrame;
     use crate::map::som::Layer;
-    use rand;
     use rand::Rng;
 
     #[test]

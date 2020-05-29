@@ -53,10 +53,8 @@ impl Metric {
                             if *b < 0.5 {
                                 sum += 1.0
                             }
-                        } else {
-                            if *b >= 0.5 {
-                                sum += 1.0
-                            }
+                        } else if *b >= 0.5 {
+                            sum += 1.0
                         }
                     }
                 }
@@ -155,17 +153,17 @@ mod test {
         let b = [1.0, 1.0, 1.0];
         let c = [0.0, 1.0, 1.0];
         let dist = Metric::Tanimoto.distance(&a, &b);
-        assert_eq!(dist, 1.0);
+        assert!((dist - 1.0).abs() < std::f64::EPSILON);
         let dist = Metric::Tanimoto.distance(&a, &c);
-        assert_eq!(dist, 2.0 / 3.0);
+        assert!((dist - 2.0 / 3.0).abs() < std::f64::EPSILON);
     }
     #[test]
     fn distance() {
         let a = [0.0, 0.0, 0.0];
         let b = [2.0, 2.0, 2.0];
         let dist = Metric::SqEuclidean.distance(&a, &b);
-        assert_eq!(dist, 12.0);
+        assert!((dist - 12.0).abs() < std::f64::EPSILON);
         let dist = Metric::Euclidean.distance(&a, &b);
-        assert_eq!(dist, 12f64.sqrt());
+        assert!((dist - 12f64.sqrt()).abs() < std::f64::EPSILON);
     }
 }

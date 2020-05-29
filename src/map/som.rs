@@ -240,10 +240,9 @@ impl Som {
     /// Initialize weights. Called by the constructor automatically (may change!).
     pub fn init_weights(&mut self) {
         let mut rng = rand::thread_rng();
-        let cols = self.weights.ncols();
         for row in self.weights.iter_rows_mut() {
-            for c in 0..cols {
-                row[c] = rng.gen_range(0.0, 1.0);
+            for r in row.iter_mut() {
+                *r = rng.gen_range(0.0, 1.0);
             }
         }
     }
@@ -339,7 +338,7 @@ impl Som {
     /// Trains the SOM for a single sample.
     fn train(&mut self, sample: &[f64]) {
         let params = &self.params;
-        let (nearest, _) = if params.layers.len() == 0 {
+        let (nearest, _) = if params.layers.is_empty() {
             nn::nearest_neighbor(sample, &self.weights)
         } else if params.layers.len() == 1 {
             if params.layers[0].categorical {
@@ -371,8 +370,7 @@ impl Som {
                 let dist = *self.distances_matrix.get(nearest, index) as f64;
                 if dist <= search_rad {
                     let weight = neigh.weight(radius_inv * dist);
-                    for i in 0..self.dims {
-                        let smp = sample[i];
+                    for (i, smp) in sample.iter().enumerate() {
                         if !smp.is_nan() {
                             let value = *self.weights.get(index, i);
                             self.weights
@@ -402,7 +400,7 @@ mod test {
             DecayParam::lin(0.2, 0.001),
         );
         let som = Som::new(&["A", "B", "C"], 3, 3, params);
-        assert_eq!(som.distances_matrix.get(0, 8), &8.0_f64.sqrt());
+        assert!((som.distances_matrix.get(0, 8) - 8.0_f64.sqrt()).abs() < std::f64::EPSILON);
     }
 
     #[test]
