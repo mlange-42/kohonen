@@ -3,7 +3,6 @@
 pub mod calc;
 pub mod cli;
 pub mod data;
-pub mod io;
 pub mod map;
 pub mod proc;
 pub mod ui;

@@ -133,7 +133,7 @@ mod test {
     #[test]
     fn gauss() {
         let neigh = Neighborhood::Gauss;
-        assert_eq!(neigh.weight(0.0), 1.0);
+        assert!((neigh.weight(0.0) - 1.0).abs() < std::f64::EPSILON);
         assert!(neigh.weight(3.0 * 3.0) < 0.12);
     }
 
@@ -146,7 +146,7 @@ mod test {
         let dist_sq_sc = (1.0 / scale).powi(2) * (dist * scale).powi(2);
         let dist_sq_sc_2 = ((1.0 / scale) * (dist * scale)).powi(2);
 
-        assert_eq!(dist_sq, dist_sq_sc);
-        assert_eq!(dist_sq_sc, dist_sq_sc_2);
+        assert!((dist_sq - dist_sq_sc).abs() < std::f32::EPSILON);
+        assert!((dist_sq_sc - dist_sq_sc_2).abs() < std::f32::EPSILON);
     }
 }

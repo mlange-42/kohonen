@@ -44,7 +44,7 @@ before_deploy:
 deploy:
   provider: releases
   skip_cleanup: true
-  api_key:
+  token:
     secure: hUHULfPHLuQhQPwqbBy87pUNw/IbCo0yziaSwe+Mco/LSFMLc3e9A0RFFi/kVpIjGssYQFXtw7lEN0tAMdauqVfpFPsLlUNAWQFvj7faQ307SsDI0SIblZU3oF53Yue+SwdNzxQhx3NNqZpOHHGn5gCmYmZ46fUUPYstsCz7rRT0v5tSc798h7jZdUkJzMxKVqAQu9l+9sxzZPrBADbD66cwgBR0wLyXMLwelluLDI6W6LmF7KUy5zUVv6T7p6Zi4lxhHW+EnjdG8EuiANpQ7GMDs7heR2KxpXXti6kuel+ETGLeb4trofeJtikfbHtxoQIk046O/eYVsZSeS8jzEPxtZAWBb0K1nq83D+uh3DH1zm2RoksVQ4GHU72p+H//QuK0VoOT3xKTFnRXl9hrvV0/08pVKkd2uSbErbwIyw3fga13WIxaqC177scPnK7glafXunnqQOCs75SjUH+79AEtmrQMHn26nVvHcvXJiyxTSIYTZxAqDHMhFyLdgFoczHhdEOeTm0w/GnfzjnacXQvPQhe+9INLbedOEcwa0wVmjnKl8fe/rIHAiRv6ycI+Gs497p9NHS8DavF5WSgh42wqRCnPHokHRJKMGGz8beX3rmxeHNfqpw4lBYY2o4J6XItJmJgpbUGshr+G0FPUniYYVegVNsrHfQscbXnwLEc=
   file: ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz
   on:

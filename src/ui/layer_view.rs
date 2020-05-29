@@ -33,7 +33,7 @@ impl LayerView {
         LayerView {
             window,
             layers: layers.to_vec(),
-            names: names.iter().map(|n| n.to_string()).collect(),
+            names: names.iter().map(|n| (*n).to_string()).collect(),
             layout_columns,
             scale: None,
         }
@@ -110,9 +110,9 @@ impl LayerView {
                 let mut v_max = std::f64::MIN;
                 let mut idx_max = 0;
                 for (index, col) in columns.iter() {
-                    let v = row[*col];
-                    if v > v_max {
-                        v_max = v;
+                    let val = row[*col];
+                    if val > v_max {
+                        v_max = val;
                         idx_max = *index;
                     }
                 }
@@ -247,11 +247,11 @@ impl LayerView {
                 let y_min = margin + heading + (lay_row as f64 * panel_height) as i32;
                 for (idx, row) in som.weights().iter_rows().enumerate() {
                     let (r, c) = som.to_row_col(idx);
-                    let v = row[col];
+                    let val = row[col];
                     let x = x_min + (c as i32 * scale);
                     let y = y_min + (r as i32 * scale);
 
-                    let color = color_map.get_color(v_min, v_max, v);
+                    let color = color_map.get_color(v_min, v_max, val);
 
                     root.draw(&Rectangle::new(
                         [(x, y), (x + scale, y + scale)],
@@ -371,7 +371,7 @@ mod test {
             DecayParam::exp(0.25, 0.0001),
             vec![Layer::cont(3, 0.5), Layer::cat(2, 0.5)],
         );
-        let som = Som::new(&cols, 16, 20, params);
+        let _som = Som::new(&cols, 16, 20, params);
 
         /*
         let win = WindowBuilder::new()

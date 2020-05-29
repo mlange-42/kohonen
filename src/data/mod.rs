@@ -18,7 +18,7 @@ impl DataFrame {
     /// Creates an empty data frame, with the given columns and zero rows.
     pub fn empty(columns: &[&str]) -> Self {
         DataFrame {
-            columns: columns.iter().map(|s| s.to_string()).collect(),
+            columns: columns.iter().map(|s| (*s).to_string()).collect(),
             ncols: columns.len(),
             nrows: 0,
             data: vec![],
@@ -28,7 +28,7 @@ impl DataFrame {
     /// Creates a blank data frame, with the given number of columns and rows, filled with a value.
     pub fn filled(nrows: usize, columns: &[&str], fill: f64) -> Self {
         DataFrame {
-            columns: columns.iter().map(|s| s.to_string()).collect(),
+            columns: columns.iter().map(|s| (*s).to_string()).collect(),
             ncols: columns.len(),
             nrows,
             data: vec![fill; nrows * columns.len()],
@@ -39,7 +39,7 @@ impl DataFrame {
     pub fn from_rows(columns: &[&str], rows: &[Vec<f64>]) -> Self {
         assert_eq!(columns.len(), rows[0].len());
         DataFrame {
-            columns: columns.iter().map(|s| s.to_string()).collect(),
+            columns: columns.iter().map(|s| (*s).to_string()).collect(),
             ncols: rows[0].len(),
             nrows: rows.len(),
             data: rows.iter().flatten().copied().collect(),
@@ -234,7 +234,7 @@ mod test {
 
         assert_eq!(df.ncols, 4);
         assert_eq!(df.nrows, 3);
-        assert_eq!(df.get(1, 1), &3.0);
+        assert!((df.get(1, 1) - 3.0).abs() < std::f64::EPSILON);
     }
 
     #[test]
@@ -251,8 +251,8 @@ mod test {
         assert_eq!(df.data.len(), 3 * cols.len());
 
         assert_eq!(df.get_row(1), &[2.0, 3.0, 4.0, 5.0]);
-        assert_eq!(df.get(1, 2), &4.0);
-        assert_eq!(df.get_at(2), &3.0);
+        assert!((df.get(1, 2) - 4.0).abs() < std::f64::EPSILON);
+        assert!((df.get_at(2) - 3.0).abs() < std::f64::EPSILON);
     }
 
     #[test]

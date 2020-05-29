@@ -22,7 +22,7 @@ fn main() {
 
     let proc = ProcessorBuilder::new(
         &layers,
-        &vec!["Country".to_string(), "code".to_string()],
+        &["Country".to_string(), "code".to_string()],
         &Some("Country".to_string()),
         &Some(12),
         &None,
