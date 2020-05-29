@@ -1,10 +1,7 @@
 use easy_graph::ui::window::WindowBuilder;
 use kohonen::cli::{Cli, CliParsed};
-use kohonen::map::som::Som;
-use kohonen::proc::{Processor, ProcessorBuilder};
+use kohonen::proc::ProcessorBuilder;
 use kohonen::ui::LayerView;
-use std::fs::File;
-use std::io::Write;
 use std::time::{Duration, Instant};
 use std::{env, fs};
 use structopt::StructOpt;
@@ -95,7 +92,7 @@ fn main() {
             if res.is_none() {
                 if !done {
                     println!("Elapsed: {:?}", start.elapsed());
-                    write_output(&parsed, &proc, &som);
+                    kohonen::write_output(&parsed, &proc, &som);
                     done = true;
                 }
                 if parsed.wait {
@@ -109,28 +106,11 @@ fn main() {
     } else {
         while let Some(()) = som.epoch(&proc.data(), None) {}
         println!("Elapsed: {:?}", start.elapsed());
-        write_output(&parsed, &proc, &som);
+        kohonen::write_output(&parsed, &proc, &som);
     }
 
     if parsed.wait {
         dont_disappear::any_key_to_continue::default();
-    }
-}
-
-fn write_output(parsed: &CliParsed, proc: &Processor, som: &Som) {
-    if let Some(out) = &parsed.output {
-        let units_file = format!("{}-units.csv", &out);
-        proc.write_som_units(&som, &units_file, true).unwrap();
-        let data_file = format!("{}-out.csv", &out);
-        proc.write_data_nearest(&som, proc.data(), &data_file)
-            .unwrap();
-        let norm_file = format!("{}-norm.csv", &out);
-        proc.write_normalization(&som, &norm_file).unwrap();
-
-        let som_file = format!("{}-som.json", &out);
-        let serialized = serde_json::to_string_pretty(&(som, proc.denorm())).unwrap();
-        let mut file = File::create(som_file).unwrap();
-        file.write_all(serialized.as_bytes()).unwrap();
     }
 }
 

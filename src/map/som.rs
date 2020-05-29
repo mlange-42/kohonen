@@ -321,6 +321,11 @@ impl Som {
         Some(())
     }
 
+    /// The SOM's current training epoch
+    pub fn get_epoch(&self) -> u32 {
+        self.epoch
+    }
+
     /// Decays unit weights.
     fn decay_weights(&mut self) {
         let means = self.weights.means();
