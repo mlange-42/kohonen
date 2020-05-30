@@ -27,6 +27,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource( 2 )
 kohonen_path = "../../Kohonen"
+layers = PoolIntArray( 1 )
 
 [node name="X Weights" type="Panel" parent="TabContainer"]
 visible = false
@@ -43,12 +44,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 4.0
 margin_top = 32.0
-margin_right = -980.0
-margin_bottom = -528.0
+margin_right = -4.0
+margin_bottom = -4.0
 stretch = true
 
 [node name="Viewport" type="Viewport" parent="TabContainer/3D"]
-size = Vector2( 40, 40 )
+size = Vector2( 1016, 564 )
+handle_input_locally = false
+render_target_update_mode = 0
 
 [node name="Camera" type="Camera" parent="TabContainer/3D/Viewport"]
 transform = Transform( 1, 0, 0, 0, 0.861142, 0.508365, 0, -0.508365, 0.861142, 0, 3.25156, 4.88518 )

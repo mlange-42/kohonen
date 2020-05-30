@@ -8,7 +8,7 @@
 --label-length 10 ^
 --categ false true ^
 --norm gauss none ^
---weights 1 0.5 ^
+--weights 1 1 ^
 --alpha 0.2 0.01 lin ^
 --radius 6 0.8 lin ^
 --decay 0.2 0.001 exp ^

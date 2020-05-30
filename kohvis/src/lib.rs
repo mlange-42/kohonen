@@ -2,6 +2,7 @@
 extern crate gdnative;
 extern crate kohonen;
 
+mod colors;
 mod kohonen_gd;
 mod mapping_gd;
 pub use kohonen_gd::Kohonen;
@@ -17,9 +18,9 @@ fn init(handle: gdnative::init::InitHandle) {
 trait KohonenUser2D {
     fn kohonen_path(&self) -> &str;
 
-    fn with_kohonen<F>(&self, mut owner: gdnative::Control, path: &str, fun: F)
+    fn with_kohonen<F>(mut owner: gdnative::Control, path: &str, mut fun: F)
     where
-        F: Fn(&mut gdnative::Control, &Kohonen),
+        F: FnMut(&mut gdnative::Control, &Kohonen),
     {
         let node = unsafe { owner.get_node(NodePath::from_str(path)) };
         node.and_then(|node| {
@@ -29,7 +30,7 @@ trait KohonenUser2D {
     }
 
     fn update(&mut self, owner: gdnative::Control) {
-        self.with_kohonen(
+        Self::with_kohonen(
             owner,
             self.kohonen_path(),
             |owner: &mut gdnative::Control, koh: &Kohonen| {
