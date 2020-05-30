@@ -10,5 +10,6 @@ doctest = false
 
 [dependencies]
 gdnative = "0.8"
+euclid = "0.20"
 structopt = "0.3"
 kohonen = { path = ".." }

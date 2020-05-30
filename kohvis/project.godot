@@ -16,8 +16,13 @@ _global_script_class_icons={
 [application]
 
 config/name="Kohvis"
-run/main_scene="res://scenes/HelloWorld.tscn"
+run/main_scene="res://scenes/World.tscn"
 config/icon="res://icon.png"
+
+[debug]
+
+settings/fps/force_fps=60
+settings/stdout/print_fps=true
 
 [rendering]
 
