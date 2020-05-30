@@ -5,14 +5,17 @@ extern crate kohonen;
 mod colors;
 mod kohonen_gd;
 mod mapping_gd;
+mod tabs_gd;
 pub use kohonen_gd::Kohonen;
 pub use mapping_gd::Mapping;
+pub use tabs_gd::Tabs;
 
 use gdnative::{Instance, NodePath};
 
 fn init(handle: gdnative::init::InitHandle) {
     handle.add_class::<Kohonen>();
     handle.add_class::<Mapping>();
+    handle.add_class::<Tabs>();
 }
 
 trait KohonenUser2D {

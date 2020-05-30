@@ -1,4 +1,4 @@
-use crate::colors::ColorPalette;
+use crate::colors::{ColorMap, ColorPalette, LinearColorMap};
 use crate::{Kohonen, KohonenUser2D};
 use gdnative::{Color, Control, Font, GodotString, Int32Array, ResourceLoader};
 use kohonen::calc::nn::nearest_neighbor_xyf;
@@ -85,18 +85,18 @@ impl Mapping {
                     let width = width - 2. * margin as f32;
                     let height = height - 2. * margin as f32;
 
-                    //if self.layout_columns.is_none() {
                     let (cols, scale) = Self::calc_layout_columns(
                         width, height, som_rows, som_cols, 1, heading, legend,
                     );
                     self.layout_columns = Some(cols as i32);
                     self.scale = Some(scale);
-                    //}
+
                     let names = proc.data().columns();
 
                     self.draw_classes(owner, som, label_data, names);
                 } else {
-                    //self.draw_columns(som);
+                    let names = proc.data().columns();
+                    self.draw_columns(owner, som, names);
                 }
             },
         );
@@ -229,6 +229,126 @@ impl Mapping {
                     white,
                     -1,
                 );
+            }
+        }
+    }
+
+    fn draw_columns(&mut self, owner: &mut Control, som: &Som, names: &[String]) {
+        let columns = self.get_columns(som);
+
+        let margin = 5_i32;
+        let heading = 16_i32;
+        let legend = 20_i32;
+
+        let (som_rows, som_cols) = som.size();
+        let control_size = unsafe { owner.get_size() };
+        let (width, height) = (control_size.x, control_size.y);
+        let width = width - 2. * margin as f32;
+        let height = height - 2. * margin as f32;
+
+        let (cols, scale) = Self::calc_layout_columns(
+            width,
+            height,
+            som_rows,
+            som_cols,
+            columns.len(),
+            heading,
+            legend,
+        );
+        self.layout_columns = Some(cols as i32);
+        self.scale = Some(scale);
+
+        let layout_columns = self.layout_columns.unwrap();
+
+        let layout_rows = (columns.len() as f64 / layout_columns as f64).ceil() as usize;
+        let panel_width = width as f64 / layout_columns as f64;
+        let panel_height = height as f64 / layout_rows as f64;
+
+        let scale = self.scale.unwrap();
+
+        let ranges = som.weights().ranges();
+
+        let color_map = LinearColorMap::new(&[
+            &Color::rgb(0.7, 0.0, 0.65),
+            &Color::rgb(1.0, 0.0, 0.0),
+            &Color::rgb(1.0, 1.0, 0.0),
+            &Color::rgb(0.0, 1.0, 0.0),
+            &Color::rgb(0.0, 1.0, 1.0),
+        ]);
+        let black = Color::rgb(0., 0., 0.);
+        let white = Color::rgb(1., 1., 1.);
+
+        for (index, col) in columns {
+            let (v_min, v_max) = ranges[col];
+            let lay_row = index / self.layout_columns.unwrap() as usize;
+            let lay_col = index % self.layout_columns.unwrap() as usize;
+            let x_min = margin as f32 + (lay_col as f64 * panel_width) as f32;
+            let y_min = margin as f32 + heading as f32 + (lay_row as f64 * panel_height) as f32;
+            for (idx, row) in som.weights().iter_rows().enumerate() {
+                let (r, c) = som.to_row_col(idx);
+                let val = row[col];
+                let x = x_min as f32 + (c as f32 * scale);
+                let y = y_min as f32 + (r as f32 * scale);
+
+                let color = color_map.get_color(v_min, v_max, val);
+
+                unsafe {
+                    owner.draw_rect(
+                        euclid::Rect::new(
+                            euclid::Point2D::new(x, y),
+                            euclid::Size2D::new(scale, scale),
+                        ),
+                        color,
+                        true,
+                        1.0,
+                        false,
+                    );
+                }
+            }
+            unsafe {
+                owner.draw_rect(
+                    euclid::Rect::new(
+                        euclid::Point2D::new(x_min, y_min),
+                        euclid::Size2D::new(scale * som_cols as f32, scale * som_rows as f32),
+                    ),
+                    black,
+                    false,
+                    1.0,
+                    false,
+                );
+            }
+            let text = GodotString::from_str(&names[col]);
+
+            unsafe {
+                owner.draw_string(
+                    Some(self.font.clone()),
+                    euclid::Vector2D::new(x_min.round(), y_min.round() - 2.),
+                    text,
+                    white,
+                    -1,
+                );
+            }
+
+            let steps = 25;
+            let total_height = scale * som.nrows() as f32 - 40.;
+            let total_width = scale * som.ncols() as f32;
+            let x = x_min as f32 + total_width;
+            for i in 0..steps {
+                let value = i as f64 / steps as f64;
+                let color = color_map.get_color(0.0, 1.0, value);
+                let y = y_min as f32 + total_height + 20. - (total_height as f32 * value as f32);
+                unsafe {
+                    owner.draw_rect(
+                        euclid::Rect::new(
+                            euclid::Point2D::new(x + 3., y),
+                            euclid::Size2D::new(legend as f32 - 3., total_height / steps as f32),
+                        ),
+                        color,
+                        true,
+                        1.0,
+                        false,
+                    );
+                }
             }
         }
     }
