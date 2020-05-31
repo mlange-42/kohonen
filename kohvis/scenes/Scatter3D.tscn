@@ -1,0 +1,77 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://default_env.tres" type="Environment" id=1]
+
+[node name="Scatter3D" type="Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+
+[node name="HSplit" type="HSplitContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+split_offset = 120
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Controls" type="VBoxContainer" parent="HSplit"]
+margin_right = 120.0
+margin_bottom = 564.0
+
+[node name="XAxis" type="ItemList" parent="HSplit/Controls"]
+margin_right = 120.0
+margin_bottom = 9.0
+auto_height = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="YAxis" type="ItemList" parent="HSplit/Controls"]
+margin_top = 13.0
+margin_right = 120.0
+margin_bottom = 22.0
+auto_height = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ZAxis" type="ItemList" parent="HSplit/Controls"]
+margin_top = 26.0
+margin_right = 120.0
+margin_bottom = 35.0
+auto_height = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="3D" type="ViewportContainer" parent="HSplit"]
+margin_left = 132.0
+margin_right = 1016.0
+margin_bottom = 564.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+stretch = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Viewport" type="Viewport" parent="HSplit/3D"]
+size = Vector2( 884, 564 )
+handle_input_locally = false
+render_target_update_mode = 3
+
+[node name="CameraAnchor" type="Spatial" parent="HSplit/3D/Viewport"]
+
+[node name="Camera" type="Camera" parent="HSplit/3D/Viewport/CameraAnchor"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5 )
+environment = ExtResource( 1 )
+current = true
+
+[node name="CSGBox" type="CSGBox" parent="HSplit/3D/Viewport"]
+
+[node name="DirectionalLight" type="DirectionalLight" parent="HSplit/3D/Viewport"]
+transform = Transform( 0.543087, -0.528642, 0.652376, 0, 0.776937, 0.629578, -0.839677, -0.341915, 0.421944, 0, 3.58031, 0 )

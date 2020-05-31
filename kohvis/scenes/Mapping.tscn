@@ -15,5 +15,5 @@ script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-kohonen_path = "../../Kohonen"
 layers = PoolIntArray( 0 )
+kohonen_path = "../../Kohonen"
