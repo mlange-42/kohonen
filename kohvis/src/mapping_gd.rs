@@ -1,6 +1,6 @@
 use crate::colors::{ColorMap, ColorPalette, LinearColorMap};
-use crate::{Kohonen, KohonenUser2D};
-use gdnative::{Color, Control, Font, GodotString, Int32Array, ResourceLoader};
+use crate::util;
+use gdnative::{Color, Control, Font, GodotString, Int32Array, Node, ResourceLoader};
 use kohonen::calc::nn::nearest_neighbor_xyf;
 use kohonen::data::DataFrame;
 use kohonen::map::som::Som;
@@ -14,6 +14,7 @@ pub struct Mapping {
     layers: Int32Array,
     #[property()]
     layout_columns: Option<i32>,
+    kohonen_node: Option<Node>,
     scale: Option<f32>,
     colors: ColorPalette,
     font: Font,
@@ -37,6 +38,7 @@ impl Mapping {
             kohonen_path: "".to_string(),
             layers,
             layout_columns: None,
+            kohonen_node: None,
             scale: None,
             colors: ColorPalette::default(),
             font,
@@ -44,11 +46,29 @@ impl Mapping {
     }
 
     #[export]
-    fn _ready(&mut self, _owner: Control) {}
+    fn _ready(&mut self, owner: Control) {
+        self.kohonen_node = util::get_kohonen_node(owner, &self.kohonen_path);
+    }
 
     #[export]
     fn _process(&mut self, owner: Control, _delta: f64) {
         self.update(owner);
+    }
+
+    fn update(&mut self, owner: Control) {
+        util::with_kohonen(
+            owner.clone(),
+            *self.kohonen_node.as_ref().unwrap(),
+            |mut owner, koh| {
+                if !koh.is_done() {
+                    unsafe {
+                        owner.update();
+                    }
+                } else {
+                }
+            },
+        )
+        .unwrap_or_else(|err| panic!("Unable to retrieve Kohonen node. ({:?})", err));
     }
 
     #[export]
@@ -59,10 +79,10 @@ impl Mapping {
             layers.push(self.layers.get(i));
         }
 
-        Self::with_kohonen(
-            owner,
-            &self.kohonen_path().to_string(),
-            |owner: &mut gdnative::Control, koh: &Kohonen| {
+        util::with_kohonen(
+            owner.clone(),
+            *self.kohonen_node.as_ref().unwrap(),
+            |mut owner, koh| {
                 let proc = koh.processor().as_ref().unwrap();
                 let label_data = match proc.labels() {
                     Some(lab) => Some((proc.data(), lab)),
@@ -93,13 +113,14 @@ impl Mapping {
 
                     let names = proc.data().columns();
 
-                    self.draw_classes(owner, som, label_data, names);
+                    self.draw_classes(&mut owner, som, label_data, names);
                 } else {
                     let names = proc.data().columns();
-                    self.draw_columns(owner, som, names);
+                    self.draw_columns(&mut owner, som, names);
                 }
             },
-        );
+        )
+        .unwrap_or_else(|err| panic!("Unable to retrieve Kohonen node. ({:?})", err));
     }
 
     fn draw_classes(
@@ -416,11 +437,5 @@ impl Mapping {
                 .max_by(|(_col1, scale1), (_col2, scale2)| scale1.partial_cmp(scale2).unwrap())
                 .unwrap()
         }
-    }
-}
-
-impl KohonenUser2D for Mapping {
-    fn kohonen_path(&self) -> &str {
-        &self.kohonen_path
     }
 }
