@@ -8,10 +8,10 @@ pub fn get_kohonen_node(owner: Control, path: &str) -> Option<Node> {
 pub fn with_kohonen<F, U>(
     owner: gdnative::Control,
     node: Node,
-    mut fun: F,
+    fun: F,
 ) -> Result<U, gdnative::user_data::LocalCellError>
 where
-    F: FnMut(gdnative::Control, &Kohonen) -> U,
+    F: FnOnce(gdnative::Control, &Kohonen) -> U,
 {
     Instance::<Kohonen>::try_from_base(node)
         .unwrap()
