@@ -51,9 +51,9 @@ impl Tabs {
         );
     }
 
-    fn with_kohonen<F>(mut owner: gdnative::TabContainer, path: &str, mut fun: F)
+    fn with_kohonen<F>(mut owner: gdnative::TabContainer, path: &str, fun: F)
     where
-        F: FnMut(&mut gdnative::TabContainer, &Kohonen),
+        F: FnOnce(&mut gdnative::TabContainer, &Kohonen),
     {
         let node = unsafe { owner.get_node(gdnative::NodePath::from_str(path)) };
         node.and_then(|node| {

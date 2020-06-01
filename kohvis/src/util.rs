@@ -1,7 +1,7 @@
 use crate::Kohonen;
 use gdnative::{Control, Instance, Node, NodePath};
 
-pub fn get_kohonen_node(owner: Control, path: &str) -> Option<Node> {
+pub fn get_node(owner: Control, path: &str) -> Option<Node> {
     unsafe { owner.get_node(NodePath::from_str(path)) }
 }
 

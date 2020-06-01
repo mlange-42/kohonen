@@ -19,3 +19,4 @@ __meta__ = {
 kohonen_path = "../Kohonen"
 
 [node name="Scatter3D" parent="Tabs" instance=ExtResource( 2 )]
+kohonen_path = "../../Kohonen"

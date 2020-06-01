@@ -47,7 +47,7 @@ impl Mapping {
 
     #[export]
     fn _ready(&mut self, owner: Control) {
-        self.kohonen_node = util::get_kohonen_node(owner, &self.kohonen_path);
+        self.kohonen_node = util::get_node(owner, &self.kohonen_path);
     }
 
     #[export]
