@@ -1,4 +1,4 @@
-..\target\release\kohonen ^
+..\target\debug\kohvis ^
 --file ..\example_data\countries.csv ^
 --size 16 12 ^
 --epochs 2500 ^
@@ -8,7 +8,7 @@
 --label-length 10 ^
 --categ false true ^
 --norm gauss none ^
---weights 1 1 ^
+--weights 1 0.5 ^
 --alpha 0.2 0.01 lin ^
 --radius 6 0.8 lin ^
 --decay 0.2 0.001 exp ^

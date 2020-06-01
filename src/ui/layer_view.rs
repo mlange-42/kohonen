@@ -176,7 +176,7 @@ impl LayerView {
                 }
             }
 
-            // Draw lagend
+            // Draw legend
             let x = x_min + som.ncols() as i32 * scale + 10;
             for (i, class) in classes.iter().enumerate() {
                 let color = Palette99::pick(i);
