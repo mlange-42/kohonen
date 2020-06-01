@@ -58,7 +58,7 @@ impl Mapping {
     fn update(&mut self, owner: Control) {
         util::with_kohonen(
             owner.clone(),
-            *self.kohonen_node.as_ref().unwrap(),
+            self.kohonen_node.unwrap(),
             |mut owner, koh| {
                 if !koh.is_done() {
                     unsafe {
